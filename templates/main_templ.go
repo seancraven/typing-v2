@@ -26,7 +26,7 @@ func Main(get_button templ.Component) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype HTML><html><head><script src=\"https://unpkg.com/htmx.org@2.0.2\" integrity=\"sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ\" crossorigin=\"anonymous\">\n    </script><script src=\"https://cdn.tailwindcss.com\"></script></head><div class=\"flex justify-center\"><h1 class=\"text-3xl font-bold text-gray-800 mb-4\">Typing v2</h1></div><body><div class=\"container mx-auto px-4\"><div class=\"w-full lg:max-w-69 mx-auto\"><div class=\"text-gray-800\" id=\"input_text\">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin diam ante, tincidunt sit amet quam et, accumsan dictum arcu. Lorem ipsum dolor sit amet, consectetur adipiscing elit. In nisi dui, pharetra nec nisl ut, aliquam fermentum metus. Maecenas ipsum lectus, feugiat ut neque a, feugiat vulputate lectus. Suspendisse laoreet vestibulum sodales. Nullam fermentum risus sed mauris pharetra laoreet. Etiam finibus, ex malesuada imperdiet faucibus, lectus urna consequat ipsum, a cursus urna velit ut felis. Nunc vel velit nec eros tincidunt mollis. Sed sollicitudin nulla ac rhoncus consectetur. In pretium rhoncus mauris in laoreet. Sed convallis dictum dolor sed auctor. Proin eu egestas nunc. Nunc sed est varius, varius nisi et, laoreet nisi. Etiam fringilla ullamcorper elit eget tincidunt. Maecenas nec vulputate tellus, eu ornare augue. Donec sagittis rutrum nisi ut placerat. Ut nisi tortor, elementum a ex ac, sollicitudin eleifend neque. Phasellus molestie, mi et elementum sollicitudin, diam nibh aliquet nibh, nec faucibus sem erat quis sapien. Etiam porta auctor lacus vitae maximus. Nullam faucibus finibus enim a volutpat. Phasellus a felis diam. Aenean ornare erat non ante ultricies pharetra. Suspendisse eu tristique mauris.</div><script src=\"/js/itext.js\"></script>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype HTML><html><head><script src=\"https://unpkg.com/htmx.org@2.0.2\" integrity=\"sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ\" crossorigin=\"anonymous\">\n    </script><script src=\"https://cdn.tailwindcss.com\"></script></head><div class=\"flex justify-center\"><h1 class=\"text-3xl font-bold text-gray-800 mb-4\">Typing v2</h1></div><body><div class=\"container mx-auto px-4\"><div class=\"w-full lg:max-w-69 mx-auto\"><div class=\"text-gray-800\" id=\"input_text\">Lorem</div><script src=\"/js/itext.js\"></script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -67,7 +67,7 @@ func DivWrapper(id string, div templ.Component) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 50, Col: 14}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 34, Col: 14}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -149,7 +149,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(route)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 67, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 51, Col: 22}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -162,7 +162,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(target_name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 67, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 51, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -175,7 +175,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(button_text)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 67, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 51, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -193,7 +193,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(route)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 69, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 53, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -206,7 +206,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(target_name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 69, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 53, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -219,7 +219,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(button_text)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 69, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 53, Col: 85}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
