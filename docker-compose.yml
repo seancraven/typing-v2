@@ -1,0 +1,12 @@
+services:
+  my-project-with-air:
+    build:
+      context: .
+
+    # working_dir value has to be the same of mapped volume
+    working_dir: /project-package
+    ports:
+      - 8080:80
+      - 3000:3000
+    volumes:
+      - ./:/project-package/
