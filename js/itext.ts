@@ -1,12 +1,17 @@
-const no_col = "bg-white text-gray-900";
-const right_col = "text-green-200";
-const wrong_col = "text-red-200";
-const next_col = "bg-sky-200 text-gray-900";
+const no_col = "text-gray-200";
+const right_col = "text-gray-400";
+const wrong_col = "bg-red-800 text-gray-200 rounded";
+const next_col = "bg-violet-800 text-gray-200 rounded";
+
 class TextEntry {
   private n: number;
-  constructor(public html: HTMLElement) {
+  constructor(
+    public html: HTMLElement,
+    public timer: Timer,
+  ) {
     this.n = 0;
     this.html = html;
+    this.timer = timer;
     this.spanify();
     colorSpan(this.html, this.html.children[0], next_col);
   }
@@ -28,8 +33,9 @@ class TextEntry {
     }
     colorSpan(this.html, this.html.children[this.n], color);
     this.n++;
-    if (this.n == this.html.children.length) {
+    if (this.n >= this.html.children.length) {
       document.removeEventListener("keydown", this.update_state);
+      this.timer.stop();
       return;
     }
     colorSpan(this.html, this.html.children[this.n], next_col);
@@ -57,6 +63,33 @@ class TextEntry {
     this.html.innerHTML = new_text.join("");
   };
 }
+class Timer {
+  private cur_time: number;
+  private delta: number;
+  private start_time: number;
+  private interval_id: number;
+  constructor() {}
+  tick = () => {
+    this.cur_time = new Date().getTime();
+    this.delta = this.cur_time - this.start_time;
+    var minutes = Math.floor((this.delta % (1000 * 60 * 60)) / (1000 * 60));
+    var seconds = Math.floor((this.delta % (1000 * 60)) / 1000);
+    var doc = document.getElementById("timer");
+    if (!!doc) {
+      doc.innerHTML = "Elapsed Time: " + minutes + ":" + seconds;
+    } else {
+      console.log("Oh no I cant find element: timer");
+    }
+  };
+  timer = (ev: KeyboardEvent) => {
+    this.start_time = new Date().getTime();
+    this.interval_id = setInterval(this.tick);
+  };
+  stop = () => {
+    clearInterval(this.interval_id);
+    return this.delta;
+  };
+}
 
 function colorSpan(parent: Element, span: Element, color: string) {
   let char = span.innerHTML;
@@ -75,6 +108,8 @@ if (!p) {
 }
 console.log("Found input text");
 var n = 0;
-var text_entry = new TextEntry(p);
+var timer = new Timer();
+var text_entry = new TextEntry(p, timer);
+document.addEventListener("keypress", text_entry.timer.timer, { once: true });
 document.addEventListener("keypress", text_entry.update_state);
 document.addEventListener("keydown", text_entry.update_backward);
