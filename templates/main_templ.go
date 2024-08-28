@@ -26,7 +26,7 @@ func Main(get_button templ.Component) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype HTML><html><head><script src=\"https://unpkg.com/htmx.org@2.0.2\" integrity=\"sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ\" crossorigin=\"anonymous\">\n    </script><script src=\"https://cdn.tailwindcss.com\"></script></head><div class=\"flex justify-center\"><h1 class=\"text-3xl font-bold text-gray-200 mb-4\">Chad Type</h1></div><body class=\"min-h-screen bg-gradient-to-b bg-black h-screen text-gray-200\"><nav><ol class=\"container mx-auto grid grid-cols-4 flex items-center justify-center\"><li class=\"col-span-1 justify-center\">Home</li><li class=\"col-span-1 justify-center\">Sexy</li><li class=\"col-span-1 justify-center\">Daddy</li></ol></nav><div class=\"container mx-auto px-4 h-2/3 flex items-center bg-blue-900\"><div class=\"w-full lg:max-w-45 mx-auto text-3xl h-full\"><div class=\"text-gray-200 h-2/3 items-center\" id=\"input_text\">Lorem ipsum donet</div><script src=\"/js/itext.js\"></script><div id=\"timer\" class=\"container mx-auto flex justify-center text-gray-200 h-1/3\">Don't let the stacey's get away</div></div></div></body></html>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype HTML><html><head><script src=\"https://unpkg.com/htmx.org@2.0.2\" integrity=\"sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ\" crossorigin=\"anonymous\">\n    </script><script src=\"https://cdn.tailwindcss.com\"></script></head><body class=\"min-h-screen bg-black h-screen text-gray-200\"><nav class=\"border-gray-200 bg-violet-900\"><div class=\"max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4\"><a class=\"flex items-center space-x-3 rtl:space-x-reverse\"><img src=\"http://localhost:3000/js/image.webp\" class=\"h-8\" alt=\"Flowbite Logo\"> <span class=\"self-center text-2xl font-semibold whitespace-nowrap dark:text-white\">ChadType</span></a><div class=\"flex items-center md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse\"><button type=\"button\" class=\"flex text-sm bg-violet-800 rounded-full md:me-0 focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600\" id=\"user-menu-button\" aria-expanded=\"false\" data-dropdown-toggle=\"user-dropdown\" data-dropdown-placement=\"bottom\"><span class=\"sr-only\">Open user menu</span> <img class=\"w-8 h-8 rounded-full\" src=\"/docs/images/people/profile-picture-3.jpg\" alt=\"user photo\"></button><div class=\"z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600\" id=\"user-dropdown\"><div class=\"px-4 py-3\"><span class=\"block text-sm text-gray-900 dark:text-white\">Bonnie Green</span> <span class=\"block text-sm  text-gray-500 truncate dark:text-gray-400\">name@flowbite.com</span></div><ul class=\"py-2\" aria-labelledby=\"user-menu-button\"><li><a href=\"#\" class=\"block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white\">Dashboard</a></li><li><a href=\"#\" class=\"block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white\">Settings</a></li><li><a href=\"#\" class=\"block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white\">Earnings</a></li><li><a href=\"#\" class=\"block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white\">Sign out</a></li></ul></div><button data-collapse-toggle=\"navbar-user\" type=\"button\" class=\"inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600\" aria-controls=\"navbar-user\" aria-expanded=\"false\"><span class=\"sr-only\">Open main menu</span> <svg class=\"w-5 h-5\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 17 14\"><path stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M1 1h15M1 7h15M1 13h15\"></path></svg></button></div><div class=\"items-center justify-between hidden w-full md:flex md:w-auto md:order-1\" id=\"navbar-user\"></div></div></nav><div class=\"flex py-10 p-30 justfy-center bg-black\"><div class=\"container mx-auto lg:w-5/12 p-4 py-10 min-h-[100px] flex justify-center\"><div class=\"w-full lg:max-w-35 mx-auto text-3xl h-full items-center\"><div class=\"flex min-h-[500px] items-center justify-center\"><span class=\"text-gray-200 items-center leading-relaxed inline-block align-middle\" id=\"input_text\">Contrary to popular belief, Sean is the most amazing man in the world omg incredible.</span></div><script src=\"/js/itext.js\"></script><div id=\"timer\" class=\"container mx-auto flex justify-center text-gray-200 min-h-[44px]\"></div><div class=\"w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700\"><div role=\"progressbar\" id=\"progressbar\" class=\"bg-violet-800 h-2.5 rounded-full\" style=\"width: 0%\"></div></div></div></div></div></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -59,7 +59,7 @@ func DivWrapper(id string, div templ.Component) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 43, Col: 14}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 94, Col: 14}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -141,7 +141,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(route)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 60, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 111, Col: 22}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -154,7 +154,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(target_name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 60, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 111, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -167,7 +167,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(button_text)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 60, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 111, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -185,7 +185,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(route)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 62, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 113, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -198,7 +198,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(target_name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 62, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 113, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -211,7 +211,7 @@ func button(methodType string, route string, target_name string, button_text str
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(button_text)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 62, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/main.templ`, Line: 113, Col: 85}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -249,7 +249,7 @@ func buttonresp() templ.Component {
 			templ_7745c5c3_Var12 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div id=\"timer\"></div><script src=\"/js/timer.js\">\n</script>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div id=\"timer\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
