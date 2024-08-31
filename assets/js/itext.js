@@ -1,80 +1,16 @@
-var be_uri = "http://localhost:3000";
-var no_col = "text-gray-200";
-var right_col = "text-gray-400";
-var wrong_col = "bg-red-800 text-gray-200 rounded";
-var next_col = "bg-violet-800 text-gray-200 rounded";
-var TextEntryHandler = /** @class */ (function () {
-    function TextEntryHandler(html, timer) {
-        var _this = this;
+const be_uri = "http://localhost:8080";
+const no_col = "text-gray-200";
+const right_col = "text-gray-400";
+const wrong_col = "bg-red-800 text-gray-200 rounded";
+const next_col = "bg-violet-800 text-gray-200 rounded";
+class TextEntryHandler {
+    html;
+    timer;
+    n;
+    data;
+    constructor(html, timer) {
         this.html = html;
         this.timer = timer;
-        this.update_forward = function (ev) {
-            ev.preventDefault();
-            var color;
-            var current_char = _this.html.children[_this.n].innerHTML;
-            if (ev.key == current_char) {
-                color = right_col;
-            }
-            else {
-                color = wrong_col;
-                _this.data.error_chars[ev.key] += 1;
-            }
-            colorSpan(_this.html, _this.html.children[_this.n], color);
-            _this.n++;
-            if (_this.n >= _this.html.children.length) {
-                document.removeEventListener("keydown", _this.update_forward);
-                var timer_1 = document.getElementById("timer");
-                if (!!timer_1) {
-                    var wpm = Math.floor(_this.html.children.length / 5 / (_this.timer.delta_ms / (1000 * 60)));
-                    console.log(wpm);
-                    timer_1.innerHTML = "WPM: " + String(wpm);
-                }
-                _this.timer.stop();
-                _this.data.type_time_s = _this.timer.delta_ms;
-                _this.data.finished = true;
-                _this.data.username = "test";
-                fetch("".concat(be_uri, "/user/data"), {
-                    method: "POST",
-                    body: JSON.stringify(_this.data),
-                    headers: {
-                        "Content-type": "application/json; charset=UTF-8",
-                    },
-                }).then(function (resp) {
-                    console.log("Typing data response: ", resp.ok ? resp.text() : resp.status + " :" + resp.statusText);
-                });
-                return;
-            }
-            colorSpan(_this.html, _this.html.children[_this.n], next_col);
-        };
-        this.update_bar = function (ev) {
-            var bar = document.getElementById("progressbar");
-            if (!!bar) {
-                bar.style.width =
-                    String(Math.floor((_this.n / _this.html.children.length) * 100)) + "%";
-            }
-        };
-        this.update_backward = function (ev) {
-            if (ev.key != "Backspace") {
-                return;
-            }
-            if (_this.n == 0) {
-                return;
-            }
-            colorSpan(_this.html, _this.html.children[_this.n], no_col);
-            _this.html.children[_this.n];
-            console.log(_this.n);
-            _this.n--;
-            colorSpan(_this.html, _this.html.children[_this.n], next_col);
-        };
-        this.spanify = function () {
-            var new_text = new Array();
-            var char;
-            for (var i = 0; i < _this.html.innerHTML.length; i++) {
-                char = _this.html.innerHTML[i];
-                new_text.push("<span class=".concat(no_col, ">") + char + "</span>");
-            }
-            _this.html.innerHTML = new_text.join("");
-        };
         this.n = 0;
         this.html = html;
         this.timer = timer;
@@ -82,48 +18,120 @@ var TextEntryHandler = /** @class */ (function () {
         this.spanify();
         colorSpan(this.html, this.html.children[0], next_col);
     }
-    return TextEntryHandler;
-}());
-var Timer = /** @class */ (function () {
-    function Timer() {
-        var _this = this;
-        this.tick = function () {
-            _this.cur_time = new Date().getTime();
-            _this.delta_ms = _this.cur_time - _this.start_time;
-            var minutes = Math.floor((_this.delta_ms % (1000 * 60 * 60)) / (1000 * 60));
-            var seconds = Math.floor((_this.delta_ms % (1000 * 60)) / 1000);
-            var doc = document.getElementById("timer");
-            if (!!doc) {
-                doc.innerHTML = "Elapsed Time: " + minutes + ":" + seconds;
+    update_forward = (ev) => {
+        ev.preventDefault();
+        let color;
+        let current_char = this.html.children[this.n].innerHTML;
+        if (ev.key == current_char) {
+            color = right_col;
+        }
+        else {
+            color = wrong_col;
+            this.data.error_chars.set(ev.key, this.data.error_chars.get(ev.key) ?? 0 + 1);
+        }
+        colorSpan(this.html, this.html.children[this.n], color);
+        this.n++;
+        if (this.n >= this.html.children.length) {
+            document.removeEventListener("keydown", this.update_forward);
+            let timer = document.getElementById("timer");
+            if (!!timer) {
+                let wpm = Math.floor(this.html.children.length / 5 / (this.timer.delta_ms / (1000 * 60)));
+                console.log(wpm);
+                timer.innerHTML = "WPM: " + String(wpm);
             }
-            else {
-                console.log("Oh no I cant find element: timer");
-            }
-        };
-        this.timer = function (ev) {
-            _this.start_time = new Date().getTime();
-            _this.interval_id = setInterval(_this.tick);
-        };
-        this.stop = function () {
-            clearInterval(_this.interval_id);
-            return _this.delta_ms;
-        };
-    }
-    return Timer;
-}());
-var TypeData = /** @class */ (function () {
-    function TypeData(username) {
+            this.timer.stop();
+            this.data.type_time_s = this.timer.delta_ms;
+            this.data.finished = true;
+            this.data.username = "test";
+            fetch(`${be_uri}/user/data`, {
+                method: "POST",
+                body: JSON.stringify(this.data),
+                headers: {
+                    "Content-type": "application/json; charset=UTF-8",
+                },
+            }).then((resp) => {
+                console.log("Typing data response: ", resp.ok ? resp.text() : resp.status + " :" + resp.statusText);
+            });
+            return;
+        }
+        colorSpan(this.html, this.html.children[this.n], next_col);
+    };
+    update_bar = (ev) => {
+        var bar = document.getElementById("progressbar");
+        if (!!bar) {
+            bar.style.width =
+                String(Math.floor((this.n / this.html.children.length) * 100)) + "%";
+        }
+    };
+    update_backward = (ev) => {
+        if (ev.key != "Backspace") {
+            return;
+        }
+        if (this.n == 0) {
+            return;
+        }
+        colorSpan(this.html, this.html.children[this.n], no_col);
+        this.html.children[this.n];
+        console.log(this.n);
+        this.n--;
+        colorSpan(this.html, this.html.children[this.n], next_col);
+    };
+    spanify = () => {
+        var new_text = new Array();
+        var char;
+        this.html.innerHTML = this.html.innerHTML.trim();
+        console.log(this.html.innerHTML);
+        for (let i = 0; i < this.html.innerHTML.length; i++) {
+            char = this.html.innerHTML[i];
+            new_text.push(`<span class=${no_col}>` + char + "</span>");
+        }
+        this.html.innerHTML = new_text.join("");
+    };
+}
+class Timer {
+    cur_time;
+    delta_ms;
+    start_time;
+    interval_id;
+    constructor() { }
+    tick = () => {
+        this.cur_time = new Date().getTime();
+        this.delta_ms = this.cur_time - this.start_time;
+        var minutes = Math.floor((this.delta_ms % (1000 * 60 * 60)) / (1000 * 60));
+        var seconds = Math.floor((this.delta_ms % (1000 * 60)) / 1000);
+        var doc = document.getElementById("timer");
+        if (!!doc) {
+            doc.innerHTML = "Elapsed Time: " + minutes + ":" + seconds;
+        }
+        else {
+            console.log("Oh no I cant find element: timer");
+        }
+    };
+    timer = (ev) => {
+        this.start_time = new Date().getTime();
+        this.interval_id = setInterval(this.tick);
+    };
+    stop = () => {
+        clearInterval(this.interval_id);
+        return this.delta_ms;
+    };
+}
+class TypeData {
+    username;
+    type_time_ms;
+    error_chars;
+    finished;
+    constructor(username) {
         this.username = username;
         this.error_chars = new Map();
         this.finished = false;
-        this.type_time_s = 0;
+        this.type_time_ms = 0;
         this.username = username;
     }
-    return TypeData;
-}());
+}
 function colorSpan(parent, span, color) {
-    var char = span.innerHTML;
-    var new_span = document.createElement("span");
+    let char = span.innerHTML;
+    let new_span = document.createElement("span");
     new_span.className = color;
     new_span.innerHTML = char;
     parent.replaceChild(new_span, span);
@@ -136,7 +144,6 @@ if (!p) {
 else {
     var doc = p;
 }
-console.log("Found input text");
 var n = 0;
 var timer = new Timer();
 var text_entry = new TextEntryHandler(p, timer);

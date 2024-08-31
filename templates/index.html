@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <script
@@ -125,13 +125,12 @@
       >
         <div class="w-full lg:max-w-35 mx-auto text-3xl h-full items-center">
           <div class="flex min-h-[500px] items-center justify-center">
-            <span
+            <div
               class="text-gray-200 items-center leading-relaxed inline-block align-middle"
               id="input_text"
             >
-              Contrary to popular belief, Sean is the most amazing man in the
-              world omg incredible.
-            </span>
+              {{ text| safe }}
+            </div>
           </div>
           <script src="/js/itext.js"></script>
           <div

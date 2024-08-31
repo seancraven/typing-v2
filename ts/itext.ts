@@ -1,4 +1,4 @@
-const be_uri = "http://localhost:3000";
+const be_uri = "http://localhost:8080";
 const no_col = "text-gray-200";
 const right_col = "text-gray-400";
 const wrong_col = "bg-red-800 text-gray-200 rounded";
@@ -28,7 +28,10 @@ class TextEntryHandler {
       color = right_col;
     } else {
       color = wrong_col;
-      this.data.error_chars[ev.key] += 1;
+      this.data.error_chars.set(
+        ev.key,
+        this.data.error_chars.get(ev.key) ?? 0 + 1,
+      );
     }
     colorSpan(this.html, this.html.children[this.n], color);
     this.n++;
@@ -86,6 +89,8 @@ class TextEntryHandler {
   spanify = () => {
     var new_text = new Array();
     var char: string;
+    this.html.innerHTML = this.html.innerHTML.trim();
+    console.log(this.html.innerHTML);
     for (let i = 0; i < this.html.innerHTML.length; i++) {
       char = this.html.innerHTML[i];
       new_text.push(`<span class=${no_col}>` + char + "</span>");
@@ -121,13 +126,13 @@ class Timer {
   };
 }
 class TypeData {
-  public type_time_s: number;
+  public type_time_ms: number;
   public error_chars: Map<string, number>;
   public finished: boolean;
   constructor(public username: string) {
-    this.error_chars = new Map();
+    this.error_chars = new Map<string, number>();
     this.finished = false;
-    this.type_time_s = 0;
+    this.type_time_ms = 0;
     this.username = username;
   }
 }
@@ -147,7 +152,6 @@ if (!p) {
 } else {
   var doc = p;
 }
-console.log("Found input text");
 var n = 0;
 var timer = new Timer();
 var text_entry = new TextEntryHandler(p, timer);
