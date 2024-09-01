@@ -1,12 +1,23 @@
 services:
-  my-project-with-air:
-    build:
-      context: .
-
-    # working_dir value has to be the same of mapped volume
-    working_dir: /project-package
-    ports:
-      - 8080:80
-      - 3000:3000
+  # backend:
+  #   build:
+  #     context: .
+  #
+  #   # working_dir value has to be the same of mapped volume
+  #   working_dir: /project-package
+  #   ports:
+  #     - 8080:80
+  #     - 3000:3000
+  #   volumes:
+  #     - ./:/project-package/
+  postgres:
+    image: postgres:16-bullseye
+    shm_size: 128m
     volumes:
-      - ./:/project-package/
+      - /mnt/database:/var/lib/postgresql/data
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
