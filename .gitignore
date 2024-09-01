@@ -1,1 +1,6 @@
 /target
+/node_modules/
+package-lock.json
+Cargo.lock
+Cargo.lock
+/assets/js

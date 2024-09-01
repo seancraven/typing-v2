@@ -15,9 +15,11 @@ async fn main() {
         App::new()
             .wrap(Logger::default())
             .service(index)
+            .service(login)
             .service(check_health)
             .service(data_handler)
             .service(actix_files::Files::new("/js", "assets/js"))
+            .service(actix_files::Files::new("/css", "assets/css"))
     })
     .bind("0.0.0.0:8080")
     .unwrap()
@@ -32,7 +34,11 @@ async fn check_health() -> &'static str {
 }
 #[get("/")]
 async fn index() -> impl Responder {
-    templates::HtmlTemplate::new("Sean is a god".into())
+    templates::HtmlTemplate::<templates::IndexPage>::new("Sean is a god".into())
+}
+#[get("/login")]
+async fn login() -> impl Responder {
+    templates::HtmlTemplate::<templates::LoginPage>::new()
 }
 #[derive(Deserialize, Debug)]
 struct UserData {

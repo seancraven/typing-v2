@@ -7,13 +7,21 @@ use askama::Template;
 pub struct IndexPage {
     text: String,
 }
-
+#[derive(askama::Template)]
+#[template(path = "login.html")]
+pub struct LoginPage {}
+impl HtmlTemplate<LoginPage> {
+    pub fn new() -> HtmlTemplate<LoginPage> {
+        HtmlTemplate(LoginPage {})
+    }
+}
 pub struct HtmlTemplate<T>(T);
 impl HtmlTemplate<IndexPage> {
     pub fn new(text: String) -> HtmlTemplate<IndexPage> {
         HtmlTemplate(IndexPage { text })
     }
 }
+
 impl<T> Responder for HtmlTemplate<T>
 where
     T: Template,
