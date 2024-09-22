@@ -1,5 +1,5 @@
-import type { MetaFunction } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
+import { useFetcher, useLoaderData, useParams } from "@remix-run/react";
 import React, { useEffect, useState } from "react";
 
 export const meta: MetaFunction = () => {
@@ -19,11 +19,31 @@ export default function Index() {
   );
 }
 export function loader() {
-  return { text: "Your mum is a fat bint" };
+  let endpoint = `${be_url}/text`;
+  let out = fetch(endpoint, {
+    signal: AbortSignal.timeout(1000),
+  })
+    .then((resp) => {
+      if (resp.status != 200) {
+        console.log(
+          "Requesting data to : ",
+          endpoint,
+          "Failed with: ",
+          resp.status
+        );
+      }
+      return resp.json();
+    })
+    .catch((r) => {
+      console.log("Failed to get data due to :", r);
+      throw new Response("Data fetching failed.", { status: 503 });
+    });
+  return out;
 }
 
 function TypingZone() {
   let text = useLoaderData<typeof loader>().text;
+  let fetcher = useFetcher<typeof action>();
   let spanned = spanify(text);
   // Initalize text state
   let new_span = spanned.map((_, i) => {
@@ -55,7 +75,6 @@ function TypingZone() {
   const [keypressHistory, setKeypressHistory] = useState([]);
 
   // timer start hook.
-  const start_time = Date.now();
   useEffect(() => {
     if (keypressHistory.length == 1) {
       const interval_id = setInterval(
@@ -70,6 +89,10 @@ function TypingZone() {
     if (Pos >= text.length) {
       clearInterval(timerCallbackState);
       console.log(keypressHistory);
+      fetcher.submit(
+        { keypressHistory },
+        { method: "POST", encType: "application/json" }
+      );
     }
   }, [Pos]);
 
@@ -174,9 +197,6 @@ function niceTimeSince(start_time: number): string {
   if (minutes < 10) {
     minutes = "0" + minutes;
   }
-  if (seconds == 0) {
-    seconds == "00";
-  }
   return minutes + ":" + seconds;
 }
 
@@ -211,8 +231,31 @@ function updateSpecialSpan(
     );
   }
 }
+export function CatchBoundary() {
+  const caught = useParams();
+  return (
+    <div>
+      <h1>Caught</h1>
+      <p>Status: {caught.status}</p>
+      <pre>
+        <code>{JSON.stringify(caught.data, null, 2)}</code>
+      </pre>
+    </div>
+  );
+}
+export async function action({ request }: ActionFunctionArgs) {
+  console.log("Hit the loader");
+  console.log(request);
+  const json = await request.json();
+  fetch("http://localhost:8080/json", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(json),
+  });
+  return null;
+}
 const no_col = "text-gray-200";
 const right_col = "text-gray-400";
 const wrong_col = "bg-red-800 text-gray-200 rounded";
 const next_col = "bg-violet-800 text-gray-200 rounded";
-const be_uri = "http://localhost:3000";
+const be_url = "http://localhost:8080";

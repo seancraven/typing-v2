@@ -1,5 +1,3 @@
-use std::{collections::HashMap, fmt::Display, io::Read};
-
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{
     body::BoxBody,
@@ -12,27 +10,25 @@ use actix_web::{
 };
 use dotenv::var;
 use log::info;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fmt::Display, io::Read};
 use store::DB;
 
 mod store;
-mod templates;
 
 #[actix_web::main]
 async fn main() {
     info!("Booting server.");
+    info!("Binding to localhost:8080");
     let db = web::Data::new(DB::from_url(var("DATABASE_URL").unwrap()).await);
     env_logger::init();
     actix_web::HttpServer::new(move || {
         App::new()
             .app_data(db.clone())
             .wrap(Logger::default())
-            .service(index)
-            .service(login)
+            .service(text)
             .service(check_health)
             .service(data_handler)
-            .service(actix_files::Files::new("/js", "assets/js"))
-            .service(actix_files::Files::new("/css", "assets/css"))
     })
     .bind("0.0.0.0:8080")
     .unwrap()
@@ -53,16 +49,21 @@ async fn check_health(state: web::Data<DB>) -> impl Responder {
         HttpResponse::InternalServerError().body("Database Error.")
     }
 }
-#[get("/")]
-async fn index() -> impl Responder {
-    templates::HtmlTemplate::<templates::IndexPage>::new("Sean is a god".into())
+#[derive(Deserialize, Serialize, Debug)]
+struct TextResponse {
+    text: String,
 }
-#[get("/login")]
-async fn login() -> impl Responder {
-    templates::HtmlTemplate::<templates::LoginPage>::new()
+#[get("/text")]
+async fn text() -> impl Responder {
+    HttpResponse::Ok().body(
+        serde_json::json!(TextResponse {
+            text: "test".into()
+        })
+        .to_string(),
+    )
 }
 #[derive(Deserialize, Debug)]
-struct UserData {
+pub(crate) struct UserData {
     user_id: String,
     error_chars: HashMap<String, usize>,
     finished: bool,

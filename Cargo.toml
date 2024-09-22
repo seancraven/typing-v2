@@ -16,7 +16,6 @@ sqlx = { version = "0.8.1", features = [
   "tls-rustls-ring",
 ] }
 uuid = "1.10"
-askama = "0.12.1"
 actix-files = "*"
 env_logger = "0.11"
 log = "0.4.22"

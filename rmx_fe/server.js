@@ -11,6 +11,7 @@ const viteDevServer =
       );
 
 const app = express();
+app.get("/health/status", () => "Healthy");
 app.use(
   viteDevServer ? viteDevServer.middlewares : express.static("build/client")
 );
