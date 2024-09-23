@@ -57,7 +57,7 @@ struct TextResponse {
 async fn text() -> impl Responder {
     HttpResponse::Ok().body(
         serde_json::json!(TextResponse {
-            text: "test".into()
+            text: "Sean is a sexy boi".into()
         })
         .to_string(),
     )
