@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Display, io::Read};
 use store::DB;
 
+mod llm_client;
 mod store;
 
 #[actix_web::main]
