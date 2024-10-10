@@ -8,10 +8,12 @@ use actix_web::{
     web::{self, Json},
     App, HttpResponse, Responder, ResponseError,
 };
+use awc::{Client, Connector};
 use dotenv::var;
-use log::info;
+use llm_client::single_question;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, io::Read};
+use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc, thread::sleep, time::Duration};
 use store::DB;
 
 mod llm_client;
@@ -21,11 +23,19 @@ mod store;
 async fn main() {
     info!("Booting server.");
     info!("Binding to localhost:8080");
+
     let db = web::Data::new(DB::from_url(var("DATABASE_URL").unwrap()).await);
+    let client_tls_config = Arc::new(rustls_config());
+
     env_logger::init();
     actix_web::HttpServer::new(move || {
         App::new()
             .app_data(db.clone())
+            .app_data(web::Data::new(
+                Client::builder()
+                    .connector(Connector::new().rustls_0_23(client_tls_config.clone()))
+                    .finish(),
+            ))
             .wrap(Logger::default())
             .service(text)
             .service(check_health)
@@ -55,13 +65,22 @@ struct TextResponse {
     text: String,
 }
 #[get("/text")]
-async fn text() -> impl Responder {
-    HttpResponse::Ok().body(
-        serde_json::json!(TextResponse {
-            text: "Sean is a sexy boi".into()
-        })
-        .to_string(),
-    )
+async fn text(client: web::Data<Client>) -> impl Responder {
+    // let text = match single_question(
+    //     "Can you please write a short python program on the following topic:",
+    //     "go parsers.",
+    //     &client,
+    // )
+    // .await
+    // {
+    //     Ok(t) => t,
+    //     Err(e) => {
+    //         error!("{}", e);
+    //         return HttpResponse::InternalServerError().body("Soemthing went wrong.");
+    //     }
+    // };
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    HttpResponse::Ok().body(serde_json::json!(TextResponse { text: "Hi".into() }).to_string())
 }
 #[derive(Deserialize, Debug)]
 pub(crate) struct UserData {
@@ -121,4 +140,15 @@ impl ResponseError for SQLXError {
         log::error!("{}", self.0);
         ErrorInternalServerError("Unexpected server error.").into()
     }
+}
+fn rustls_config() -> rustls::ClientConfig {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .unwrap();
+
+    let root_store = rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.to_owned());
+
+    rustls::ClientConfig::builder()
+        .with_root_certificates(root_store)
+        .with_no_client_auth()
 }

@@ -1,6 +1,8 @@
 import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
-import { useFetcher, useLoaderData, useParams } from "@remix-run/react";
-import React, { useEffect, useState } from "react";
+import { defer } from "@remix-run/node";
+import { Suspense } from "react";
+import { Await, useFetcher, useLoaderData, useParams } from "@remix-run/react";
+import Typing from "~/components/typing";
 
 export const meta: MetaFunction = () => {
   return [
@@ -18,155 +20,30 @@ export default function Index() {
     </div>
   );
 }
-export function loader() {
+export async function loader() {
   let endpoint = `${be_url}/text`;
-  let out = fetch(endpoint, {
-    signal: AbortSignal.timeout(1000),
-  })
-    .then((resp) => {
-      if (resp.status != 200) {
-        console.log(
-          "Requesting data to : ",
-          endpoint,
-          "Failed with: ",
-          resp.status
-        );
-      }
-      return resp.json();
-    })
-    .catch((r) => {
-      console.log("Failed to get data due to :", r);
-      throw new Response("Data fetching failed.", { status: 503 });
-    });
-  return out;
+
+  let promise: Promise<any> = fetch(endpoint).then((resp) => {
+    return resp.json();
+  });
+  return defer({ promise });
 }
 
 function TypingZone() {
-  let text = useLoaderData<typeof loader>().text;
+  let { promise } = useLoaderData<typeof loader>();
   let fetcher = useFetcher<typeof action>();
-  let spanned = spanify(text);
-  // Initalize text state
-  let new_span = spanned.map((_, i) => {
-    if (i == 0) {
-      return (
-        <span key={i} className={next_col}>
-          {text[i]}
-        </span>
-      );
-    }
-    return (
-      <span key={i} className={no_col}>
-        {text[i]}
-      </span>
-    );
-  });
-  // Intialize errors.
-  let errors: string[] = [];
-  for (let i = 0; i < text.length; i++) {
-    errors.push("");
-  }
-
-  // Shared state.
-  const [spanTextState, setspanTextState] = useState(new_span);
-  const [timerState, setTimerState] = useState("");
-  const [Pos, setPos] = useState(0);
-  const [errorState, setErrorState] = useState(errors);
-  const [timerCallbackState, setTimerCallbackState] = useState("");
-  const [keypressHistory, setKeypressHistory] = useState([]);
-
-  // timer start hook.
-  useEffect(() => {
-    if (keypressHistory.length == 1) {
-      const interval_id = setInterval(
-        () => setTimerState(niceTimeSince(keypressHistory[0][1])),
-        100
-      );
-      setTimerCallbackState(interval_id);
-    }
-  }, [keypressHistory]);
-  // timer stop hook.
-  useEffect(() => {
-    if (Pos >= text.length) {
-      clearInterval(timerCallbackState);
-      console.log(keypressHistory);
-      fetcher.submit(
-        { keypressHistory },
-        { method: "POST", encType: "application/json" }
-      );
-    }
-  }, [Pos]);
-
-  const backspaceEventListner = (ev: KeyboardEvent) => {
-    if (ev.key == "Backspace") {
-      console.log("Backspace");
-      let new_list = [];
-      let newErrorState = errorState.map((ov, i) => {
-        if (Pos - 1 == i) {
-          return "";
-        }
-        return ov;
-      });
-      for (let i = 0; i < text.length; i++) {
-        new_list.push(updateSpecialSpan(text, newErrorState, Pos - 2, i));
-      }
-      setPos(Pos - 1);
-      setErrorState(newErrorState);
-      setspanTextState(new_list);
-      return;
-    }
-  };
-  const keypressEventListner = (ev: KeyboardEvent) => {
-    let new_list = [];
-    let newErrorState = errorState.map((ov, i) => {
-      if (Pos == i) {
-        if (ev.key != text[Pos]) {
-          return text[Pos];
-        }
-      }
-      return ov;
-    });
-    for (let i = 0; i < text.length; i++) {
-      new_list.push(updateSpecialSpan(text, newErrorState, Pos, i));
-    }
-    setKeypressHistory([...keypressHistory, [ev.key, Date.now()]]);
-    setErrorState(newErrorState);
-    setspanTextState(new_list);
-    setPos(Pos + 1);
-  };
-  useEffect(() => {
-    document.addEventListener("keypress", keypressEventListner);
-    document.addEventListener("keydown", backspaceEventListner);
-    return () => {
-      document.removeEventListener("keypress", keypressEventListner);
-      document.removeEventListener("keydown", backspaceEventListner);
-    };
-  }, [spanTextState, Pos]);
 
   return (
     <div className="w-full lg:max-w-35 mx-auto text-3xl h-full items-center">
-      <div className="flex min-h-[500px] items-center justify-center">
-        <div
-          className="text-gray-200 items-center leading-relaxed inline-block align-middle"
-          id="input_text"
-        >
-          {spanTextState}
-        </div>
-      </div>
-      <div
-        id="timer"
-        className="container mx-auto flex justify-center text-gray-200 min-h-[44px]"
+      <Suspense
+        fallback={<div className="w-full bg-white">hi before she loads</div>}
       >
-        {timerState}
-      </div>
-      <div className="relative w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-        <progress
-          role="progressbar"
-          id="progressbar"
-          className="w-full  h-2.5 rounded-full absolute right-0"
-          max="100"
-          value={Math.floor((100 * Pos) / text.length)}
-        ></progress>
-      </div>
+        <Await resolve={promise}>
+          {(promise) => {
+            return <Typing text={promise.text} fetcher={fetcher}></Typing>;
+          }}
+        </Await>
+      </Suspense>
     </div>
   );
 }

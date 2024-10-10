@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-web = { version = "4.9", features = ["macros"] }
+actix-web = { version = "4.9", features = ["macros", "rustls"] }
 actix-multipart = "0.7"
 serde = { version = "1.0.209", features = ["derive"] }
 tokio = { version = "1.40", features = ["full"] }
@@ -15,10 +15,13 @@ sqlx = { version = "0.8.1", features = [
   "uuid",
   "tls-rustls-ring",
 ] }
+rustls = "0.23.14"
 uuid = "1.10"
 actix-files = "*"
 env_logger = "0.11"
 log = "0.4.22"
 dotenv = "0.15.0"
+
 anyhow = "1.0.86"
-reqwest = "0.12.8"
+awc = { version = "3.5.1", features = ["rustls-0_23"] }
+webpki-roots = "0.26"
