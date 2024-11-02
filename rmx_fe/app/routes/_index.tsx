@@ -21,17 +21,17 @@ export default function Index() {
   );
 }
 export async function loader() {
-  let endpoint = `${be_url}/text`;
+  const endpoint = `${be_url}/text`;
 
-  let promise: Promise<any> = fetch(endpoint).then((resp) => {
+  const promise = fetch(endpoint).then((resp) => {
     return resp.json();
   });
   return defer({ promise });
 }
 
 function TypingZone() {
-  let { promise } = useLoaderData<typeof loader>();
-  let fetcher = useFetcher<typeof action>();
+  const { promise } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
 
   return (
     <div className="w-full lg:max-w-35 mx-auto text-3xl h-full items-center">
@@ -48,66 +48,6 @@ function TypingZone() {
   );
 }
 
-/* Turn text into spans contianing a single char */
-function spanify(text: string) {
-  var new_text: React.JSX.Element[] = new Array();
-  var char: string;
-  for (let i = 0; i < text.length; i++) {
-    char = text[i];
-    new_text.push(
-      <span key={i} className={no_col}>
-        {char}
-      </span>
-    );
-  }
-  return new_text;
-}
-
-function niceTimeSince(start_time: number): string {
-  let cur_time = new Date().getTime();
-  let delta_ms = cur_time - start_time;
-  var minutes = Math.floor((delta_ms % (1000 * 60 * 60)) / (1000 * 60));
-  var seconds = Math.floor((delta_ms % (1000 * 60)) / 1000);
-  if (seconds < 10) {
-    seconds = "0" + seconds;
-  }
-  if (minutes < 10) {
-    minutes = "0" + minutes;
-  }
-  return minutes + ":" + seconds;
-}
-
-function updateSpecialSpan(
-  text: string,
-  errors: string[],
-  cur_index: number,
-  i: number
-) {
-  if (i == cur_index + 1) {
-    return (
-      <span key={i} className={next_col}>
-        {text[i]}
-      </span>
-    );
-  }
-  if (i > cur_index + 1) {
-    return (
-      <span key={i} className={no_col}>
-        {text[i]}
-      </span>
-    );
-  } else {
-    let col = right_col;
-    if (errors[i] != "") {
-      col = wrong_col;
-    }
-    return (
-      <span key={i} className={col}>
-        {text[i]}
-      </span>
-    );
-  }
-}
 export function CatchBoundary() {
   const caught = useParams();
   return (
@@ -131,8 +71,4 @@ export async function action({ request }: ActionFunctionArgs) {
   });
   return null;
 }
-const no_col = "text-gray-200";
-const right_col = "text-gray-400";
-const wrong_col = "bg-red-800 text-gray-200 rounded";
-const next_col = "bg-violet-800 text-gray-200 rounded";
 const be_url = "http://localhost:8080";

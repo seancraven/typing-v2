@@ -1,17 +1,16 @@
 import { FetcherWithComponents, useParams } from "@remix-run/react";
-import { useEffect, useState } from "react";
-import { action } from "~/routes/_index";
+import { KeyboardEvent, useEffect, useState } from "react";
 
 export default function Typing(props: {
   text: string;
   fetcher: FetcherWithComponents<null>;
 }) {
-  let text = props.text;
-  let fetcher = props.fetcher;
+  const text = props.text.slice(0, 30);
+  const fetcher = props.fetcher;
 
-  let spanned = spanify(text);
+  const spanned = spanify(text);
   // Initalize text state
-  let new_span = spanned.map((_, i) => {
+  const new_span = spanned.map((_, i) => {
     if (i == 0) {
       return (
         <span key={i} className={next_col}>
@@ -26,7 +25,7 @@ export default function Typing(props: {
     );
   });
   // Intialize errors.
-  let errors: string[] = [];
+  const errors: string[] = [];
   for (let i = 0; i < text.length; i++) {
     errors.push("");
   }
@@ -64,6 +63,11 @@ export default function Typing(props: {
   return (
     <div className="w-full">
       <div className="flex min-h-[500px] items-center justify-center">
+        <input
+          onKeyDown={(e) => {
+            handleKeypress(e, setspanTextState);
+          }}
+        />
         <div
           className="text-gray-200 items-center leading-relaxed inline-block align-middle"
           id="input_text"
@@ -88,57 +92,11 @@ export default function Typing(props: {
       </div>
     </div>
   );
-
-  const backspaceEventListner = (ev: KeyboardEvent) => {
-    if (ev.key == "Backspace") {
-      console.log("Backspace");
-      let new_list = [];
-      let newErrorState = errorState.map((ov, i) => {
-        if (Pos - 1 == i) {
-          return "";
-        }
-        return ov;
-      });
-      for (let i = 0; i < text.length; i++) {
-        new_list.push(updateSpecialSpan(text, newErrorState, Pos - 2, i));
-      }
-      setPos(Pos - 1);
-      setErrorState(newErrorState);
-      setspanTextState(new_list);
-      return;
-    }
-  };
-  const keypressEventListner = (ev: KeyboardEvent) => {
-    let new_list = [];
-    let newErrorState = errorState.map((ov, i) => {
-      if (Pos == i) {
-        if (ev.key != text[Pos]) {
-          return text[Pos];
-        }
-      }
-      return ov;
-    });
-    for (let i = 0; i < text.length; i++) {
-      new_list.push(updateSpecialSpan(text, newErrorState, Pos, i));
-    }
-    setKeypressHistory([...keypressHistory, [ev.key, Date.now()]]);
-    setErrorState(newErrorState);
-    setspanTextState(new_list);
-    setPos(Pos + 1);
-  };
-  useEffect(() => {
-    document.addEventListener("keypress", keypressEventListner);
-    document.addEventListener("keydown", backspaceEventListner);
-    return () => {
-      document.removeEventListener("keypress", keypressEventListner);
-      document.removeEventListener("keydown", backspaceEventListner);
-    };
-  }, [spanTextState, Pos]);
 }
 /* Turn text into spans contianing a single char */
 function spanify(text: string) {
-  var new_text: React.JSX.Element[] = new Array();
-  var char: string;
+  const new_text: React.JSX.Element[] = [];
+  let char: string;
   for (let i = 0; i < text.length; i++) {
     char = text[i];
     new_text.push(
@@ -151,10 +109,11 @@ function spanify(text: string) {
 }
 
 function niceTimeSince(start_time: number): string {
-  let cur_time = new Date().getTime();
-  let delta_ms = cur_time - start_time;
-  var minutes = Math.floor((delta_ms % (1000 * 60 * 60)) / (1000 * 60));
-  var seconds = Math.floor((delta_ms % (1000 * 60)) / 1000);
+  const cur_time = new Date().getTime();
+  const delta_ms = cur_time - start_time;
+
+  const minutes = Math.floor((delta_ms % (1000 * 60 * 60)) / (1000 * 60));
+  let seconds = Math.floor((delta_ms % (1000 * 60)) / 1000);
   if (seconds < 10) {
     seconds = "0" + seconds;
   }
@@ -163,7 +122,12 @@ function niceTimeSince(start_time: number): string {
   }
   return minutes + ":" + seconds;
 }
-
+/* Need to implement a function to update the spans based on each keypress. */
+function handleKeypress(
+  event: KeyboardEvent,
+  setSpansState: (arg0: Element[]) => void,
+  spanState: Element[]
+) {}
 function updateSpecialSpan(
   text: string,
   errors: string[],
@@ -183,17 +147,16 @@ function updateSpecialSpan(
         {text[i]}
       </span>
     );
-  } else {
-    let col = right_col;
-    if (errors[i] != "") {
-      col = wrong_col;
-    }
-    return (
-      <span key={i} className={col}>
-        {text[i]}
-      </span>
-    );
   }
+  let col = right_col;
+  if (errors[i] != "") {
+    col = wrong_col;
+  }
+  return (
+    <span key={i} className={col}>
+      {text[i]}
+    </span>
+  );
 }
 export function CatchBoundary() {
   const caught = useParams();
