@@ -59,10 +59,39 @@ impl DB {
         .await
         .map(|_| ())
     }
-    pub async fn ingest(&self, text_body: impl AsRef<str>) -> sqlx::error::Result<()> {
-        sqlx::query!("INSERT INTO texts (body) VALUES ($1)", text_body.as_ref()).execute(&self.pool).await.map(|_| ())
+    pub async fn ingest_user_documet(&self, text_body: impl AsRef<str>) -> sqlx::error::Result<()> {
+        sqlx::query!(
+            "INSERT INTO user_documents (body) VALUES ($1);",
+            text_body.as_ref(),
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
     }
-    pub async fn get_random_text(&self) -> sqlx::error::Result<String> {
-        sqlx::query_scalar!(r#"SELECT body FROM texts ORDER BY RANDOM() LIMIT 1"#).fetch_one(&self.pool).await
+    pub async fn ingest(
+        &self,
+        text_body: impl AsRef<str>,
+        topic_id: i32,
+    ) -> sqlx::error::Result<()> {
+        sqlx::query!(
+            "INSERT INTO texts (body, topic_id) VALUES ($1, $2);",
+            text_body.as_ref(),
+            topic_id
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+    pub async fn get_random_text(&self) -> sqlx::error::Result<(i32, String)> {
+        sqlx::query!(r#"SELECT topic_id, body FROM texts ORDER BY RANDOM() LIMIT 1;"#)
+            .fetch_one(&self.pool)
+            .await
+            .map(|b| (b.topic_id, b.body))
+    }
+    pub async fn get_random_topic(&self) -> sqlx::error::Result<(i32, String)> {
+        sqlx::query!(r#"SELECT id, topic FROM topics ORDER BY RANDOM() LIMIT 1"#)
+            .fetch_one(&self.pool)
+            .await
+            .map(|row| (row.id, row.topic))
     }
 }

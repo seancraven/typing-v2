@@ -121,7 +121,6 @@ struct Candidate {
 mod test {
 
     use super::*;
-
     #[test]
     fn test_serialise() -> serde_json::Result<()> {
         let cases = vec![
@@ -133,16 +132,5 @@ mod test {
             assert_eq!(serde_json::to_string(&i)?, o);
         }
         Ok(())
-    }
-    #[tokio::test]
-    async fn test_send() {
-        let client = awc::Client::new();
-        single_question(
-            "Please resposd with 5 letters.",
-            "What is my name?",
-            &client,
-        )
-        .await
-        .unwrap();
     }
 }

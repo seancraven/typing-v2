@@ -10,23 +10,22 @@ use actix_web::{
 };
 use awc::{Client, Connector};
 use dotenv::var;
-use llm_client::single_question;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc, thread::sleep, time::Duration};
+use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc};
 use store::DB;
+use text::text_for_typing;
 
 mod llm_client;
 mod store;
+mod text;
 
 #[actix_web::main]
 async fn main() {
     info!("Booting server.");
     info!("Binding to localhost:8080");
-
     let db = web::Data::new(DB::from_url(var("DATABASE_URL").unwrap()).await);
     let client_tls_config = Arc::new(rustls_config());
-
     env_logger::init();
     actix_web::HttpServer::new(move || {
         App::new()
@@ -37,7 +36,7 @@ async fn main() {
                     .finish(),
             ))
             .wrap(Logger::default())
-            .service(text)
+            .service(get_text)
             .service(check_health)
             .service(data_handler)
     })
@@ -65,22 +64,15 @@ struct TextResponse {
     text: String,
 }
 #[get("/text")]
-async fn text(client: web::Data<Client>) -> impl Responder {
-    // let text = match single_question(
-    //     "Can you please write a short python program on the following topic:",
-    //     "go parsers.",
-    //     &client,
-    // )
-    // .await
-    // {
-    //     Ok(t) => t,
-    //     Err(e) => {
-    //         error!("{}", e);
-    //         return HttpResponse::InternalServerError().body("Soemthing went wrong.");
-    //     }
-    // };
-    tokio::time::sleep(Duration::from_secs(2)).await;
-    HttpResponse::Ok().body(serde_json::json!(TextResponse { text: "Hi".into() }).to_string())
+async fn get_text(client: web::Data<Client>, db: web::Data<DB>) -> impl Responder {
+    let Ok(text) = text_for_typing(&client, &db).await.map_err(|e| {
+        error!("Generation of text failed with {:?}.", e);
+        e
+    }) else {
+        return HttpResponse::InternalServerError().body("Text generation failed.");
+    };
+    let serialise = serde_json::to_string(&TextResponse { text }).unwrap();
+    HttpResponse::Ok().body(serialise)
 }
 #[derive(Deserialize, Debug)]
 pub(crate) struct UserData {
@@ -122,7 +114,7 @@ async fn inget_handler(
                 .body(format!("While reading the file: {}", e));
         }
     };
-    match state.ingest(string).await {
+    match state.ingest_user_documet(string).await {
         Ok(()) => HttpResponse::Ok().finish(),
         Err(e) => SQLXError(e).error_response(),
     }
@@ -151,4 +143,24 @@ fn rustls_config() -> rustls::ClientConfig {
     rustls::ClientConfig::builder()
         .with_root_certificates(root_store)
         .with_no_client_auth()
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[actix_web::test]
+    async fn test_send() {
+        let client_tls_config = Arc::new(rustls_config());
+        let client = Client::builder()
+            .connector(Connector::new().rustls_0_23(client_tls_config.clone()))
+            .finish();
+
+        llm_client::single_question(
+            "Please resposd with 5 letters.",
+            "What is my name?",
+            &client,
+        )
+        .await
+        .unwrap();
+    }
 }
