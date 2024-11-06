@@ -2467,6 +2467,7 @@ dependencies = [
  "dotenv",
  "env_logger",
  "log",
+ "rand",
  "rustls 0.23.14",
  "serde",
  "serde_json",

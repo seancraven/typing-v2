@@ -4,6 +4,7 @@ import { KeyboardEvent, useEffect, useState } from "react";
 export default function Typing(props: {
   text: string;
   fetcher: FetcherWithComponents<null>;
+  setComplete: (arg0: boolean) => void;
 }) {
   const text = props.text.slice(0, 30);
   const fetcher = props.fetcher;
@@ -29,14 +30,36 @@ export default function Typing(props: {
   for (let i = 0; i < text.length; i++) {
     errors.push("");
   }
-
   // Shared state.
-  const [spanTextState, setspanTextState] = useState(new_span);
+  const [spanState, setSpanState] = useState(new_span);
   const [timerState, setTimerState] = useState("");
   const [Pos, setPos] = useState(0);
   const [errorState, setErrorState] = useState(errors);
-  const [timerCallbackState, setTimerCallbackState] = useState("");
-  const [keypressHistory, setKeypressHistory] = useState<any[]>([]);
+  const [timerCallbackState, setTimerCallbackState] = useState<NodeJS.Timer>();
+  const [keypressHistory, setKeypressHistory] = useState<[string, number][]>(
+    []
+  );
+
+  const keyboardCallback = (event) => {
+    handleKeypress(
+      event,
+      text,
+      spanState,
+      setSpanState,
+      Pos,
+      setPos,
+      errorState,
+      setErrorState,
+      keypressHistory,
+      setKeypressHistory
+    );
+  };
+  useEffect(() => {
+    window.addEventListener("keydown", keyboardCallback);
+    return () => {
+      window.removeEventListener("keydown", keyboardCallback);
+    };
+  }, [spanState, Pos]);
 
   // timer start hook.
   useEffect(() => {
@@ -51,28 +74,26 @@ export default function Typing(props: {
   // timer stop hook.
   useEffect(() => {
     if (Pos >= text.length) {
+      if (!timerCallbackState) {
+        throw new Error("");
+      }
       clearInterval(timerCallbackState);
       console.log(keypressHistory);
       fetcher.submit(
         { keypressHistory },
         { method: "POST", encType: "application/json" }
       );
+      props.setComplete(true);
     }
-  }, [Pos]);
-
+  }, [Pos, fetcher, keypressHistory, text.length, timerCallbackState]);
   return (
     <div className="w-full">
       <div className="flex min-h-[500px] items-center justify-center">
-        <input
-          onKeyDown={(e) => {
-            handleKeypress(e, setspanTextState);
-          }}
-        />
         <div
           className="text-gray-200 items-center leading-relaxed inline-block align-middle"
           id="input_text"
         >
-          {spanTextState}
+          {spanState}
         </div>
       </div>
       <div
@@ -83,9 +104,8 @@ export default function Typing(props: {
       </div>
       <div className="relative w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
         <progress
-          role="progressbar"
           id="progressbar"
-          className="w-full  h-2.5 rounded-full absolute right-0"
+          className="w-full h-2.5 rounded-full absolute right-0"
           max="100"
           value={Math.floor((100 * Pos) / text.length)}
         ></progress>
@@ -112,7 +132,7 @@ function niceTimeSince(start_time: number): string {
   const cur_time = new Date().getTime();
   const delta_ms = cur_time - start_time;
 
-  const minutes = Math.floor((delta_ms % (1000 * 60 * 60)) / (1000 * 60));
+  let minutes = Math.floor((delta_ms % (1000 * 60 * 60)) / (1000 * 60));
   let seconds = Math.floor((delta_ms % (1000 * 60)) / 1000);
   if (seconds < 10) {
     seconds = "0" + seconds;
@@ -122,12 +142,55 @@ function niceTimeSince(start_time: number): string {
   }
   return minutes + ":" + seconds;
 }
+
 /* Need to implement a function to update the spans based on each keypress. */
 function handleKeypress(
   event: KeyboardEvent,
-  setSpansState: (arg0: Element[]) => void,
-  spanState: Element[]
-) {}
+  text: string,
+  spanState: JSX.Element[],
+  setSpansState: (arg0: JSX.Element[]) => void,
+  pos: number,
+  setPos: (arg0: number) => void,
+  errorState: string[],
+  setErrorState: (arg0: string[]) => void,
+  keypressHistory: [string, number][],
+  setKeypressHistory: (arg0: [string, number][]) => void
+) {
+  if (event.key == "Backspace") {
+    console.log("Backspace");
+    const new_list = [];
+    const newErrorState = errorState.map((ov, i) => {
+      if (pos - 1 == i) {
+        return "";
+      }
+      return ov;
+    });
+    for (let i = 0; i < text.length; i++) {
+      new_list.push(updateSpecialSpan(text, newErrorState, pos - 2, i));
+    }
+    setPos(pos - 1);
+    setErrorState(newErrorState);
+    setSpansState(new_list);
+    return;
+  }
+  const new_list = [];
+  const newErrorState = errorState.map((ov, i) => {
+    if (pos == i) {
+      if (event.key != text[pos]) {
+        return text[pos];
+      }
+    }
+    return ov;
+  });
+  for (let i = 0; i < text.length; i++) {
+    new_list.push(updateSpecialSpan(text, newErrorState, pos, i));
+  }
+  setKeypressHistory([...keypressHistory, [event.key, Date.now()]]);
+  setErrorState(newErrorState);
+  setSpansState(new_list);
+  setPos(pos + 1);
+}
+
 function updateSpecialSpan(
   text: string,
   errors: string[],

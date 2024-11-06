@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
 import { defer } from "@remix-run/node";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Await, useFetcher, useLoaderData, useParams } from "@remix-run/react";
 import Typing from "~/components/typing";
 
@@ -32,6 +32,7 @@ export async function loader() {
 function TypingZone() {
   const { promise } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const [complete, setComplete] = useState(false);
 
   return (
     <div className="w-full lg:max-w-35 mx-auto text-3xl h-full items-center">
@@ -40,7 +41,27 @@ function TypingZone() {
       >
         <Await resolve={promise}>
           {(promise) => {
-            return <Typing text={promise.text} fetcher={fetcher}></Typing>;
+            if (!complete) {
+              return (
+                <Typing
+                  text={promise.text}
+                  fetcher={fetcher}
+                  setComplete={setComplete}
+                >
+                  {" "}
+                </Typing>
+              );
+            } else {
+              return (
+                <button
+                  onClick={() => {
+                    setComplete(false);
+                  }}
+                >
+                  Reset
+                </button>
+              );
+            }
           }}
         </Await>
       </Suspense>

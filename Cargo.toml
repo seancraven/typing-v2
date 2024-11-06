@@ -25,3 +25,4 @@ dotenv = "0.15.0"
 anyhow = "1.0.86"
 awc = { version = "3.5.1", features = ["rustls-0_23"] }
 webpki-roots = "0.26"
+rand = "0.8.5"
