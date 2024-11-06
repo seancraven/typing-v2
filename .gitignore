@@ -4,3 +4,4 @@ package-lock.json
 Cargo.lock
 Cargo.lock
 /assets/js
+.env
