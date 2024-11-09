@@ -3,13 +3,13 @@ use core::str;
 use anyhow::{anyhow, Context};
 use awc::{self, Client};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 pub async fn single_question(
     system_message: impl Into<String>,
     user_message: impl Into<String>,
     client: &Client,
 ) -> anyhow::Result<String> {
-    let endpoint: String= format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={}", dotenv::var("GOOGLE_API_KEY").unwrap());
+    let api_key = std::env::var("GEMINI_API_KEY").unwrap();
+    let endpoint: String= format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={}", api_key);
     let req = client.post(endpoint);
     let json = GenerationRequest::new_with_contents(vec![
         Content::new_system_message(system_message),

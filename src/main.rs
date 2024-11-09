@@ -12,6 +12,7 @@ use awc::{Client, Connector};
 use dotenv::var;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
+use sqlx::Pool;
 use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc};
 use store::DB;
 use text::text_for_typing;
@@ -24,7 +25,10 @@ mod text;
 async fn main() {
     info!("Booting server.");
     info!("Binding to localhost:8080");
-    let db = web::Data::new(DB::from_url(var("DATABASE_URL").unwrap()).await);
+    let db_url = std::env::var("DATABASE_URL").expect("Requires DATABASE_URL env to be set.");
+    let db = DB::from_url(db_url).await;
+    sqlx::migrate!().run(&db.pool).await.unwrap();
+    let db = web::Data::new(db);
     let client_tls_config = Arc::new(rustls_config());
     env_logger::init();
     actix_web::HttpServer::new(move || {

@@ -1,10 +1,34 @@
 services:
+  frontend:
+    build:
+      context: rmx_fe
+      dockerfile: Dockerfile
+    environment:
+      BE_URL: "http://backend:8080"
+    ports:
+      - 3000:3000
+    volumes:
+      - ./rmx_fe/app:/app/app
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        BE_URL="http://backend:8080" npm run dev
+
   backend:
     build:
       context: .
-    ports:
-      - 8080:80
-      - 3000:3000
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        /usr/local/bin/typing2
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      RUST_LOG: INFO
+    # ports:
+    #   - 8080:8080
   postgres:
     image: postgres:16-bullseye
     shm_size: 128m
