@@ -6,7 +6,7 @@ export default function Typing(props: {
   fetcher: FetcherWithComponents<null>;
   setComplete: (arg0: boolean) => void;
 }) {
-  const text = props.text;
+  const text = props.text.slice(0, 30);
   const fetcher = props.fetcher;
 
   const spanned = spanify(text);
@@ -41,7 +41,6 @@ export default function Typing(props: {
   );
 
   const keyboardCallback = (event) => {
-    event.preventDefault();
     handleKeypress(
       event,
       text,
@@ -94,7 +93,7 @@ export default function Typing(props: {
           className="text-gray-200 items-center leading-relaxed inline-block align-middle"
           id="input_text"
         >
-          <pre>{spanState}</pre>
+          {spanState}
         </div>
       </div>
       <div
@@ -158,6 +157,7 @@ function handleKeypress(
   setKeypressHistory: (arg0: [string, number][]) => void
 ) {
   if (event.key == "Backspace") {
+    console.log("Backspace");
     const new_list = [];
     const newErrorState = errorState.map((ov, i) => {
       if (pos - 1 == i) {
@@ -173,13 +173,10 @@ function handleKeypress(
     setSpansState(new_list);
     return;
   }
-  if (event.altKey || event.ctrlKey || event.shiftKey) {
-    return;
-  }
   const new_list = [];
   const newErrorState = errorState.map((ov, i) => {
     if (pos == i) {
-      if (!keypressIsChar(event, text[pos])) {
+      if (event.key != text[pos]) {
         return text[pos];
       }
     }
@@ -192,12 +189,6 @@ function handleKeypress(
   setErrorState(newErrorState);
   setSpansState(new_list);
   setPos(pos + 1);
-}
-
-function keypressIsChar(event: KeyboardEvent, char: string) {
-  return (
-    event.key == char || (event.shiftKey && event.key.toUpperCase() == char)
-  );
 }
 
 function updateSpecialSpan(
