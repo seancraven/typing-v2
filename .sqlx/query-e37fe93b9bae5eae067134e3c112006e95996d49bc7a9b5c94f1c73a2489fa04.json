@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO texts (body) VALUES ($1)",
+  "query": "INSERT INTO user_documents (body) VALUES ($1);",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "fc1d2f2cfe579d47cbe13f22e01b94b1c08da281bcef6c7d60c4ced6f9f00557"
+  "hash": "e37fe93b9bae5eae067134e3c112006e95996d49bc7a9b5c94f1c73a2489fa04"
 }
