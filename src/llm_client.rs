@@ -1,6 +1,9 @@
-use anyhow::anyhow;
+use core::str;
+
+use anyhow::{anyhow, Context};
 use awc::{self, Client};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 pub async fn single_question(
     system_message: impl Into<String>,
     user_message: impl Into<String>,
@@ -16,7 +19,10 @@ pub async fn single_question(
         .send_json(&json)
         .await
         .map_err(|e| anyhow!("During sending request this occured: {}", e))?;
-    let mut out = resp.json::<Response>().await?;
+    let mut out = resp.json::<Response>().await.context(format!(
+        "Json deserialisation of the response failed. Code {:?}",
+        str::from_utf8(&resp.body().limit(20_000_000).await.unwrap()).unwrap()
+    ))?;
     Ok(std::mem::take(&mut out.candidates[0].content.parts[0].text))
 }
 

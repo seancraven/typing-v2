@@ -101,7 +101,7 @@ async fn data_handler(state: web::Data<DB>, data: Json<UserData>) -> impl Respon
 struct Upload {
     file: TempFile,
 }
-#[put("/ingest")]
+#[post("/ingest")]
 async fn inget_handler(
     state: web::Data<DB>,
     MultipartForm(mut data): MultipartForm<Upload>,

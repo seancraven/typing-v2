@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use log::error;
+use log::{error, warn};
 use rand::Rng;
 
 use crate::{llm_client, store::DB};
@@ -22,7 +22,7 @@ pub async fn text_for_typing(client: &awc::Client, db: &DB) -> Result<String> {
             return Ok(text.1);
         }
         Err(e) => {
-            error!(
+            warn!(
                 "Fetching from the database failed due to {}, generating new text",
                 e
             );
