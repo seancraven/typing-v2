@@ -105,7 +105,7 @@ impl Default for TextGenerationParams {
             response_mime_type: None,
             candidate_count: None,
             max_output_tokens: 512,
-            temperature: 0.0,
+            temperature: 0.80,
             top_p: None,
             top_k: None,
             presence_penalty: None,

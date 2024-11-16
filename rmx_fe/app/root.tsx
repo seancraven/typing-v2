@@ -4,18 +4,20 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useParams,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 
 import stylesheet from "~/tailwind.css?url";
 import { NavBar } from "./components/nav";
+import { useState } from "react";
+import Login from "./components/login";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const [isLoggedIn, setIsloggedIn] = useState(false);
   return (
     <html lang="en">
       <head>
@@ -25,8 +27,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <NavBar />
-        {children}
+        <NavBar setIsLoggedIn={setIsloggedIn} />
+        {!isLoggedIn ? <Login setIsLoggedIn={setIsloggedIn} /> : children}
         <ScrollRestoration />
         <Scripts />
       </body>

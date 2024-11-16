@@ -74,7 +74,8 @@ export default function Typing(props: {
       );
       props.setComplete(true);
     }
-  }, [Pos, fetcher, keypressHistory, text.length, timerCallbackState]);
+  }, [Pos]);
+  const prog = Math.max(Math.min((Pos * 100) / text.length, 100), 0);
   return (
     <div className="w-full">
       <div className="flex min-h-[500px] items-center justify-center">
@@ -92,12 +93,12 @@ export default function Typing(props: {
         {timerState}
       </div>
       <div className="relative w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-        <progress
-          id="progressbar"
-          className="w-full h-2.5 rounded-full absolute right-0"
-          max="100"
-          value={Math.floor((100 * Pos) / text.length)}
-        ></progress>
+        <div
+          className="h-2.5 rounded-full bg-primary-800"
+          style={{
+            width: `${prog}%`,
+          }}
+        ></div>
       </div>
     </div>
   );
@@ -124,6 +125,9 @@ function specialCharChar(char: string): [string, boolean] {
   }
   if (char == "\n") {
     return ["\u00B6\n", false];
+  }
+  if (char == "\t") {
+    return ["\u2192 ", false];
   }
   return [char, true];
 }
@@ -172,16 +176,28 @@ function handleBackSpaceKeypress(
     setErrorState(newErrorState);
     setSpansState(new_list);
   }
-  if (event.key.length == 1 || event.key == "Enter") {
+  if (event.key.length == 1 || event.key == "Enter" || event.key == "Tab") {
     const new_list = [];
     const newErrorState = errorState.map((ov, i) => {
       if (pos == i) {
-        if (text[pos] == "\n") {
-          if (event.key != "Enter") {
-            return "\n";
+        switch (text[pos]) {
+          case "\n": {
+            if (event.key != "Enter") {
+              return "\n";
+            }
+            break;
           }
-        } else if (event.key != text[pos]) {
-          return text[pos];
+          case "\t": {
+            if (event.key != "Tab") {
+              return "\t";
+            }
+            break;
+          }
+          default: {
+            if (event.key != text[pos]) {
+              return text[pos];
+            }
+          }
         }
       }
       return ov;
@@ -250,5 +266,5 @@ const right_col_mut = "text-gray-800";
 const wrong_col = "bg-red-800 text-gray-200 rounded";
 const wrong_col_mut = "bg-red-800 text-gray-500 rounded";
 // Next Color
-const next_col = "bg-violet-800 text-gray-200 rounded";
-const next_col_mut = "bg-violet-800 text-gray-500 rounded";
+const next_col = "bg-primary-800 text-gray-200 rounded";
+const next_col_mut = "bg-primary-800 text-gray-500 rounded";

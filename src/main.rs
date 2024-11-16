@@ -9,10 +9,8 @@ use actix_web::{
     App, HttpResponse, Responder, ResponseError,
 };
 use awc::{Client, Connector};
-use dotenv::var;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use sqlx::Pool;
 use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc};
 use store::DB;
 use text::text_for_typing;

@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
 import { defer } from "@remix-run/node";
-import { Suspense, useState } from "react";
 import { Await, useFetcher, useLoaderData, useParams } from "@remix-run/react";
+import { Suspense, useState } from "react";
 import Typing from "~/components/typing";
 
 export const meta: MetaFunction = () => {
@@ -13,7 +13,7 @@ export const meta: MetaFunction = () => {
 
 export default function Index() {
   return (
-    <div className="flex py-10 p-30 justfy-center bg-black">
+    <div className="flex py-10 p-30 justfy-center bg-grey-900">
       <div className="container mx-auto lg:w-5/12 p-4 py-10 min-h-[100px] flex justify-center">
         <TypingZone />
       </div>
@@ -21,7 +21,7 @@ export default function Index() {
   );
 }
 export async function loader() {
-  const endpoint = `${be_url}/text`;
+  const endpoint = `${process.env.BE_URL}/text`;
 
   const promise = fetch(endpoint).then((resp) => {
     return resp.json();
@@ -40,16 +40,14 @@ function TypingZone() {
         fallback={<div className="w-full bg-white">hi before she loads</div>}
       >
         <Await resolve={promise}>
-          {(promise) => {
+          {(promise: { text: string }) => {
             if (!complete) {
               return (
                 <Typing
                   text={promise.text}
                   fetcher={fetcher}
                   setComplete={setComplete}
-                >
-                  {" "}
-                </Typing>
+                ></Typing>
               );
             } else {
               return (
@@ -85,11 +83,10 @@ export async function action({ request }: ActionFunctionArgs) {
   console.log("Hit the loader");
   console.log(request);
   const json = await request.json();
-  fetch("http://localhost:8080/json", {
+  fetch(`${process.env.BE_URL}/json`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(json),
   });
   return null;
 }
-const be_url = "http://localhost:8080";
