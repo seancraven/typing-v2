@@ -1,8 +1,6 @@
-import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
-import { defer } from "@remix-run/node";
-import { Await, useFetcher, useLoaderData, useParams } from "@remix-run/react";
-import { Suspense, useState } from "react";
-import Typing from "~/components/typing";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import { Outlet, redirect, useParams } from "@remix-run/react";
+import { getSession } from "~/sessions";
 
 export const meta: MetaFunction = () => {
   return [
@@ -11,58 +9,19 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await getSession(request.headers.get("Cookie"));
+  if (session.has("userId")) {
+    return redirect("/app/");
+  }
+  return redirect("/app/login");
+}
 export default function Index() {
   return (
-    <div className="flex py-10 p-30 justfy-center bg-grey-900">
-      <div className="container mx-auto lg:w-5/12 p-4 py-10 min-h-[100px] flex justify-center">
-        <TypingZone />
+    <div className="p-30 justfy-center bg-grey-900 flex py-10">
+      <div className="container mx-auto flex min-h-[100px] justify-center p-4 py-10 lg:w-5/12">
+        <Outlet />
       </div>
-    </div>
-  );
-}
-export async function loader() {
-  const endpoint = `${process.env.BE_URL}/text`;
-
-  const promise = fetch(endpoint).then((resp) => {
-    return resp.json();
-  });
-  return defer({ promise });
-}
-
-function TypingZone() {
-  const { promise } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<typeof action>();
-  const [complete, setComplete] = useState(false);
-
-  return (
-    <div className="w-full lg:max-w-35 mx-auto text-3xl h-full items-center">
-      <Suspense
-        fallback={<div className="w-full bg-white">hi before she loads</div>}
-      >
-        <Await resolve={promise}>
-          {(promise: { text: string }) => {
-            if (!complete) {
-              return (
-                <Typing
-                  text={promise.text}
-                  fetcher={fetcher}
-                  setComplete={setComplete}
-                ></Typing>
-              );
-            } else {
-              return (
-                <button
-                  onClick={() => {
-                    setComplete(false);
-                  }}
-                >
-                  Reset
-                </button>
-              );
-            }
-          }}
-        </Await>
-      </Suspense>
     </div>
   );
 }
@@ -78,15 +37,4 @@ export function CatchBoundary() {
       </pre>
     </div>
   );
-}
-export async function action({ request }: ActionFunctionArgs) {
-  console.log("Hit the loader");
-  console.log(request);
-  const json = await request.json();
-  fetch(`${process.env.BE_URL}/json`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(json),
-  });
-  return null;
 }
