@@ -4,15 +4,16 @@ use actix_web::{
     error::ErrorInternalServerError,
     get,
     middleware::Logger,
-    post, put,
+    post,
     web::{self, Json},
     App, HttpResponse, Responder, ResponseError,
 };
 use awc::{Client, Connector};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc};
-use store::DB;
+use serde_json::json;
+use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc, time::Duration};
+use store::{LoginErr, DB};
 use text::text_for_typing;
 
 mod llm_client;
@@ -35,10 +36,13 @@ async fn main() {
             .app_data(web::Data::new(
                 Client::builder()
                     .connector(Connector::new().rustls_0_23(client_tls_config.clone()))
+                    .timeout(Duration::from_secs(60))
                     .finish(),
             ))
             .wrap(Logger::default())
             .service(get_text)
+            .service(login)
+            .service(register)
             .service(check_health)
             .service(data_handler)
     })
@@ -65,8 +69,12 @@ async fn check_health(state: web::Data<DB>) -> impl Responder {
 struct TextResponse {
     text: String,
 }
-#[get("/text")]
-async fn get_text(client: web::Data<Client>, db: web::Data<DB>) -> impl Responder {
+#[get("{user_id}/text/{length}")]
+async fn get_text(
+    client: web::Data<Client>,
+    db: web::Data<DB>,
+    length: web::Path<usize>,
+) -> impl Responder {
     let Ok(text) = text_for_typing(&client, &db).await.map_err(|e| {
         error!("Generation of text failed with {:?}.", e);
         e
@@ -76,8 +84,36 @@ async fn get_text(client: web::Data<Client>, db: web::Data<DB>) -> impl Responde
     let serialise = serde_json::to_string(&TextResponse { text }).unwrap();
     HttpResponse::Ok().body(serialise)
 }
+#[post("/register")]
+async fn register(state: web::Data<DB>, data: Json<store::User>) -> impl Responder {
+    let id = match state.add_user(data.into_inner()).await {
+        Ok(id) => id,
+        Err(e) => {
+            error!("While regestering user {} occured.", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+    HttpResponse::Ok().json(json!({"id": id.to_string()}))
+}
+#[post("/login")]
+async fn login(state: web::Data<DB>, data: Json<store::User>) -> impl Responder {
+    let user = data.into_inner();
+    match state.verify_user(user).await {
+        Ok(id) => HttpResponse::Ok().json(json!({"id": id.to_string()})),
+        Err(e) => match e {
+            LoginErr::BadPassowrd => HttpResponse::Unauthorized().finish(),
+            LoginErr::NoUser(uname) => {
+                HttpResponse::BadRequest().body(format!("User with name {} doesn't exist.", uname))
+            }
+            LoginErr::Unknown(e) => {
+                error!("During login falure occured {}", e);
+                HttpResponse::InternalServerError().finish()
+            }
+        },
+    }
+}
 #[derive(Deserialize, Debug)]
-pub(crate) struct UserData {
+pub struct UserData {
     user_id: String,
     error_chars: HashMap<String, usize>,
     finished: bool,

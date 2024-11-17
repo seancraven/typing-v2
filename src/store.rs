@@ -1,3 +1,5 @@
+use anyhow::Context;
+use serde::Deserialize;
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
 
@@ -13,10 +15,11 @@ impl DB {
         }
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct User {
-    first_name: String,
-    last_name: String,
+    username: String,
+    password: String,
+    email: String,
 }
 #[derive(Debug)]
 pub struct TypingRun {
@@ -38,15 +41,45 @@ impl TryFrom<UserData> for TypingRun {
         })
     }
 }
+
+#[derive(thiserror::Error, Debug)]
+pub enum LoginErr {
+    #[error("No user with username {0}")]
+    NoUser(String),
+    #[error("Invalid password")]
+    BadPassowrd,
+    #[error("unknown")]
+    Unknown(#[from] sqlx::Error),
+}
+
 impl DB {
     pub async fn add_user(&self, user: User) -> sqlx::error::Result<uuid::Uuid> {
         sqlx::query_scalar!(
-            r#"INSERT INTO users (first_name, last_name) VALUES ($1, $2) RETURNING id;"#,
-            user.first_name,
-            user.last_name
+            r#"INSERT INTO users (id, username, password, email) VALUES ($1, $2, $3, $4) RETURNING id;"#,
+            Uuid::new_v4(),
+            user.username,
+            user.password,
+            user.email
         )
         .fetch_one(&self.pool)
         .await
+    }
+    pub async fn verify_user(&self, user: User) -> Result<uuid::Uuid, LoginErr> {
+        let row = sqlx::query!(
+            r#"SELECT id, password FROM users WHERE username = $1"#,
+            user.username
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+        match row {
+            Some(r) => {
+                if r.password == r.password {
+                    return Ok(r.id);
+                };
+                Err(LoginErr::BadPassowrd)
+            }
+            None => Err(LoginErr::NoUser(user.username)),
+        }
     }
     pub async fn add_run(&self, run: TypingRun) -> sqlx::error::Result<()> {
         sqlx::query!(
@@ -73,10 +106,12 @@ impl DB {
         text_body: impl AsRef<str>,
         topic_id: i32,
     ) -> sqlx::error::Result<()> {
+        let text = text_body.as_ref();
         sqlx::query!(
-            "INSERT INTO texts (body, topic_id) VALUES ($1, $2);",
-            text_body.as_ref(),
-            topic_id
+            "INSERT INTO texts (body, topic_id, length) VALUES ($1, $2, $3);",
+            text,
+            topic_id,
+            text.len() as i32
         )
         .execute(&self.pool)
         .await
@@ -93,5 +128,12 @@ impl DB {
             .fetch_one(&self.pool)
             .await
             .map(|row| (row.id, row.topic))
+    }
+    pub async fn get_max_progress_by_topic(&self) -> sqlx::error::Result<Vec<(f32, usize)>> {
+        todo!()
+        // sqlx::query!(r#"SELECT "#)
+        //     .fetch_all(&self.pool)
+        //     .await
+        //     .map(|row| (row.id, row.topic))
     }
 }

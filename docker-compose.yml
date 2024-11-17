@@ -7,6 +7,7 @@ services:
       BE_URL: "http://backend:8080"
     ports:
       - 3000:3000
+      - 3010:3010
     volumes:
       - ./rmx_fe/app:/app/app
     entrypoint:
