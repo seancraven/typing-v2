@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@remix-run/react";
 import { useState } from "react";
 export function NavBar() {
   return (
-    <nav className="border-gray-200 bg-primary-800">
+    <nav className="z-50 border-gray-200 bg-primary-800">
       <div className="mx-auto flex max-w-screen-xl flex-wrap items-center justify-between p-4">
         <a className="flex items-center space-x-3 rtl:space-x-reverse" href="/">
           <img src="/image.webp" className="h-8" alt="Flowbite Logo" />

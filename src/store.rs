@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::UserData;
 
+// Currently DB stores all text not bad.
 pub struct DB {
     pub pool: PgPool,
 }
@@ -117,11 +118,23 @@ impl DB {
         .await
         .map(|_| ())
     }
-    pub async fn get_random_text(&self) -> sqlx::error::Result<(i32, String)> {
-        sqlx::query!(r#"SELECT topic_id, body FROM texts ORDER BY RANDOM() LIMIT 1;"#)
+    pub async fn get_text(&self, topic_id: i32) -> sqlx::error::Result<String> {
+        sqlx::query!(
+            r#"SELECT body FROM texts WHERE topic_id = $1 ORDER BY id LIMIT 1;"#,
+            topic_id,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map(|row| row.body)
+    }
+    pub async fn get_random_text(&self) -> sqlx::error::Result<(String, String)> {
+        sqlx::query!(r#"SELECT p.topic, body FROM texts t INNER JOIN topics as p ON p.id = t.topic_id ORDER BY RANDOM() LIMIT 1;"#)
             .fetch_one(&self.pool)
             .await
-            .map(|b| (b.topic_id, b.body))
+            .map(|b| (b.topic, b.body))
+    }
+    pub async fn get_user_length_pref(&self, user_id: Uuid) -> sqlx::error::Result<usize> {
+        Ok(150)
     }
     pub async fn get_random_topic(&self) -> sqlx::error::Result<(i32, String)> {
         sqlx::query!(r#"SELECT id, topic FROM topics ORDER BY RANDOM() LIMIT 1"#)

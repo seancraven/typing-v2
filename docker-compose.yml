@@ -8,6 +8,7 @@ services:
     ports:
       - 3000:3000
       - 3010:3010
+    cpus: 1
     volumes:
       - ./rmx_fe/app:/app/app
     entrypoint:
@@ -16,6 +17,7 @@ services:
       - |
         npm run dev
   backend:
+    cpus: 1
     build:
       context: .
       dockerfile: ./Dockerfile

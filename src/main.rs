@@ -15,6 +15,7 @@ use serde_json::json;
 use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc, time::Duration};
 use store::{LoginErr, DB};
 use text::text_for_typing;
+use tokio::join;
 
 mod llm_client;
 mod store;
@@ -22,6 +23,7 @@ mod text;
 
 #[actix_web::main]
 async fn main() {
+    env_logger::init();
     info!("Booting server.");
     info!("Binding to localhost:8080");
     let db_url = std::env::var("DATABASE_URL").expect("Requires DATABASE_URL env to be set.");
@@ -29,7 +31,6 @@ async fn main() {
     sqlx::migrate!().run(&db.pool).await.unwrap();
     let db = web::Data::new(db);
     let client_tls_config = Arc::new(rustls_config());
-    env_logger::init();
     actix_web::HttpServer::new(move || {
         App::new()
             .app_data(db.clone())
@@ -41,6 +42,7 @@ async fn main() {
             ))
             .wrap(Logger::default())
             .service(get_text)
+            .service(get_random_topic)
             .service(login)
             .service(register)
             .service(check_health)
@@ -65,24 +67,39 @@ async fn check_health(state: web::Data<DB>) -> impl Responder {
         HttpResponse::InternalServerError().body("Database Error.")
     }
 }
-#[derive(Deserialize, Serialize, Debug)]
-struct TextResponse {
-    text: String,
+#[get("/random")]
+async fn get_random_topic(db: web::Data<DB>) -> impl Responder {
+    let Ok((id, topic)) = db
+        .get_random_topic()
+        .await
+        .map_err(|e| error!("Random topic fetching failed {}.", e))
+    else {
+        return HttpResponse::InternalServerError().finish();
+    };
+    HttpResponse::Ok().json(json! ({"project": topic, "project_id": id}))
 }
-#[get("{user_id}/text/{length}")]
-async fn get_text(
-    client: web::Data<Client>,
-    db: web::Data<DB>,
-    length: web::Path<usize>,
-) -> impl Responder {
-    let Ok(text) = text_for_typing(&client, &db).await.map_err(|e| {
-        error!("Generation of text failed with {:?}.", e);
-        e
-    }) else {
+#[get("/{user_id}/{project_id}/{item}")]
+async fn get_text(db: web::Data<DB>, path_data: web::Path<(String, i32, usize)>) -> impl Responder {
+    let (user_id, project_id, item) = path_data.into_inner();
+    let Ok(user_id) = uuid::Uuid::try_parse(&user_id) else {
+        return HttpResponse::BadRequest().body("Invalid user id.");
+    };
+    let Ok((text, progress)) = text_for_typing(&db, user_id, project_id, item)
+        .await
+        .map_err(|e| {
+            error!("Generation of text failed with {:?}.", e);
+            e
+        })
+    else {
         return HttpResponse::InternalServerError().body("Text generation failed.");
     };
-    let serialise = serde_json::to_string(&TextResponse { text }).unwrap();
-    HttpResponse::Ok().body(serialise)
+    let next_item = match progress {
+        1.0 => String::from("done"),
+        _ => format!("{}", (item + 1)),
+    };
+    HttpResponse::Ok().json(
+        json! ({"text": text, "progress": progress , "item": next_item, "project": project_id}),
+    )
 }
 #[post("/register")]
 async fn register(state: web::Data<DB>, data: Json<store::User>) -> impl Responder {
@@ -200,5 +217,25 @@ mod tests {
         )
         .await
         .unwrap();
+    }
+    #[actix_web::test]
+    async fn test_get() {
+        env_logger::init();
+        let svc = actix_web::test::init_service(
+            App::new()
+                .app_data(web::Data::new(
+                    DB::from_url(std::env::var("DATABASE_URL").unwrap()).await,
+                ))
+                .service(get_text),
+        )
+        .await;
+        let resp = actix_web::test::call_service(
+            &svc,
+            actix_web::test::TestRequest::get()
+                .uri("/1947a38f-596b-4974-adc6-910267976720/2/0")
+                .to_request(),
+        )
+        .await;
+        assert_eq!(resp.status(), 200, "{:?}", resp.into_body())
     }
 }

@@ -1,10 +1,17 @@
-import { ActionFunctionArgs, redirect } from "@remix-run/node";
+import {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  redirect,
+} from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
 import { User } from "~/api_type";
 import LoginWidget from "~/components/login_widget";
 import { commitSession, getSession } from "~/sessions";
 
-export async function loader() {
-  return null;
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await getSession(request.headers.get("Cookie"));
+
+  return session.has("userId");
 }
 export async function action({ request }: ActionFunctionArgs) {
   const data = await request.formData();
@@ -44,13 +51,20 @@ export async function action({ request }: ActionFunctionArgs) {
     }
     case 200: {
       const id: string = (await resp.json()).id;
+      if (!id) {
+        throw new Error("No userid returned from login endpoint.");
+      }
       session.set("userId", id);
-      console.log(await commitSession(session));
-      return redirect("/app/", {
-        headers: {
-          "Set-Cookie": await commitSession(session),
-        },
-      });
+      if (session.has("project") && session.has("item")) {
+        const project = session.get("project");
+        const item = session.get("item");
+        return redirect(`/app/${project}/${item}`, {
+          headers: {
+            "Set-Cookie": await commitSession(session),
+          },
+        });
+      }
+      return redirect(`/app/random/0`);
       break;
     }
     default: {
@@ -61,5 +75,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function Login() {
-  return <LoginWidget isLogin={true} />;
+  const loggedIn = useLoaderData<typeof loader>();
+
+  return !loggedIn ? <LoginWidget isLogin={true} /> : null;
 }

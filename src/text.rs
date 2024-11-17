@@ -1,41 +1,36 @@
+use actix_web::HttpResponse;
 use anyhow::{anyhow, Context, Result};
 use log::{error, warn};
 use rand::Rng;
+use tokio::join;
+use uuid::Uuid;
 
 use crate::{llm_client, store::DB};
 
 const P_GEN: f64 = 0.99;
 const SYSTEM_PROMPT: &'static str = include_str!("system_prompt.txt");
 const MAX_GENERATION_RETRY: usize = 3;
+pub async fn text_for_typing(
+    db: &DB,
+    user_id: Uuid,
+    topic: i32,
+    item: usize,
+) -> Result<(String, f32)> {
+    let text_fut = db.get_text(topic);
+    let len_fut = db.get_user_length_pref(user_id);
+    let (text, len) = join!(text_fut, len_fut);
+    let len = len.unwrap_or_else(|e| {
+        error!("Failed to get user length preference due to {}.", e);
+        150
+    });
+    let start_idx = len * item;
+    let end_idx = len * (item + 1);
+    let mut text = text.context("Failed fetching text from database.")?;
+    let prog = end_idx as f32 / text.len() as f32;
+    text.drain(..start_idx);
+    text.drain(end_idx..);
 
-pub async fn text_for_typing(client: &awc::Client, db: &DB) -> Result<String> {
-    if rand::thread_rng().gen_bool(P_GEN) {
-        let topic = db
-            .get_random_topic()
-            .await
-            .context("Topic fetching failed.")?;
-        let resp = llm_client::single_question(SYSTEM_PROMPT, topic.1, client).await?;
-        db.ingest(&resp, topic.0).await?;
-        return Ok(resp);
-    }
-    match db.get_random_text().await {
-        Ok(text) => {
-            return Ok(text.1);
-        }
-        Err(e) => {
-            warn!(
-                "Fetching from the database failed due to {}, generating new text",
-                e
-            );
-            let topic = db
-                .get_random_topic()
-                .await
-                .context("Topic fetching failed.")?;
-            let resp = llm_client::single_question(SYSTEM_PROMPT, topic.1, client).await?;
-            db.ingest(&resp, topic.0).await?;
-            return Ok(resp);
-        }
-    }
+    Ok((text, prog.max(1.0)))
 }
 
 async fn create_topic_epic(topic: String, client: &awc::Client) -> Result<CodeBlock> {

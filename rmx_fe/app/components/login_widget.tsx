@@ -31,7 +31,7 @@ export default function LoginWidget({ isLogin }: { isLogin: boolean }) {
 
   return (
     <section className="z-30 w-full backdrop-blur-lg backdrop-filter">
-      <div className="mx-auto flex flex-col items-center justify-center px-6 py-8 md:h-screen lg:py-0">
+      <div className="mx-auto flex flex-col items-center justify-center px-6 py-8 md:h-full lg:py-0">
         {/* <a
           className="flex items-center space-x-3 rtl:space-x-reverse py-3"
           href="/"

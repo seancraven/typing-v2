@@ -1,29 +1,61 @@
 import {
   Await,
   defer,
-  Outlet,
   useFetcher,
   useLoaderData,
   FetcherWithComponents,
   useParams,
+  useNavigate,
 } from "@remix-run/react";
-import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { getSession } from "~/sessions";
-import { Suspense, KeyboardEvent, useEffect, useState, useRef } from "react";
+import {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  redirect,
+} from "@remix-run/node";
+import { commitSession, getSession } from "~/sessions";
+import { Suspense, KeyboardEvent, useEffect, useState } from "react";
+import Journey from "~/components/journey";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const endpoint = `${process.env.BE_URL}/text`;
-
+export async function loader({ request, params }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
   const userId = session.get("userId") ?? null;
-
-  const promise = fetch(endpoint).then((resp): Promise<{ text: string }> => {
-    if (resp.status == 200) {
-      return resp.json();
-    }
-    return { text: "text" };
-  });
-  return defer({ promise, userId });
+  if (!userId) {
+    session.unset("userId");
+    return redirect("/login", {
+      headers: {
+        "Set-Cookie": await commitSession(session),
+      },
+    });
+  }
+  if (!params.project || !params.item) {
+    return redirect("/app/random");
+  }
+  if (params.project) session.set("project", params.project);
+  if (params.item) session.set("item", params.item);
+  const endpoint = `${process.env.BE_URL}/${userId}/${params.project}/${params.item}`;
+  const promise = fetch(endpoint).then(
+    (
+      resp,
+    ): Promise<{
+      text: string;
+      project: string;
+      next_item: string;
+      progress: number;
+    }> => {
+      if (resp.status == 200) {
+        return resp.json();
+      }
+      return { text: "text" };
+    },
+  );
+  return defer(
+    { promise, userId },
+    {
+      headers: {
+        "Set-Cookie": await commitSession(session),
+      },
+    },
+  );
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -37,31 +69,40 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 export default function TypingTest() {
   const { promise, userId } = useLoaderData<typeof loader>();
+  const nav = useNavigate();
   const fetcher = useFetcher<typeof action>();
-  let login_hidden = "hidden";
-  if (!userId) {
-    login_hidden = "";
-  }
   return (
     <div className={"relative h-full w-full justify-center"}>
-      <div
-        className={
-          "pt-30 absolute left-1/2 top-1/2 z-50 h-full w-full -translate-x-1/2 -translate-y-1/2 transform" +
-          login_hidden
-        }
-      >
-        <Outlet />
-      </div>
-      <div className="lg:max-w-35 mx-auto h-full w-full items-center text-3xl">
+      <div className="mx-auto h-full w-full items-center text-3xl">
         <Suspense fallback={<div className="w-full">hi before she loads</div>}>
           <Await resolve={promise}>
-            {(promise: { text: string }) => {
+            {(promise) => {
               return (
-                <Typing
-                  text={promise.text}
-                  fetcher={fetcher}
-                  loggedIn={Boolean(userId)}
-                ></Typing>
+                <div className="w-min-[800px] w-max-[1600px] mx-auto grid h-[200px] w-2/3 grid-cols-1 items-center">
+                  <div className="col-span-1 mx-auto w-[800px]">
+                    <Journey
+                      nameProgress={[
+                        {
+                          project: promise.project,
+                          progress: promise.progress * 100,
+                        },
+                      ]}
+                    />
+                  </div>
+                  <div className="col-span-1 flex">
+                    <Typing
+                      text={promise.text}
+                      fetcher={fetcher}
+                      loggedIn={Boolean(userId)}
+                      nextHanler={() => {
+                        if (promise.next_item != "done") {
+                          nav(`/app/${promise.project}/${promise.next_item}`);
+                        }
+                        nav(`/app/random/0`);
+                      }}
+                    />
+                  </div>
+                </div>
               );
             }}
           </Await>
@@ -87,8 +128,9 @@ export function Typing(props: {
   const fetcher = props.fetcher;
   const errors: string[] = new Array(text.length).fill("");
   const spanned = new Array(text.length);
+  let lastNl = 0;
   for (let i = 0; i < text.length; i++) {
-    spanned[i] = updateSpecialSpan(text, "", 0, i);
+    [spanned[i], lastNl] = updateSpecialSpan(text, "", 0, lastNl, i);
   }
   const defaultSpanState = {
     spans: spanned,
@@ -108,17 +150,14 @@ export function Typing(props: {
     setComplete(false);
     setTypingState(defaultSpanState);
     setTimerState("00:00");
-    setTimerCallbackState(null);
+    setTimerCallbackState(undefined);
   };
 
   const keypressCallback = (event: KeyboardEvent) =>
     handleKeypress(event, text, typingState, setTypingState, enabled, () =>
       setEnabled(false),
     );
-  useKeypressListener(keypressCallback, window, [
-    typingState.position,
-    enabled,
-  ]);
+  useKeypressListener(keypressCallback, [typingState.position, enabled]);
   // timer start hook.
   useEffect(() => {
     if (typingState.keypressHistory.length == 1) {
@@ -128,6 +167,7 @@ export function Typing(props: {
       );
       setTimerCallbackState(interval_id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typingState.keypressHistory.length]);
   // timer stop hook.
   useEffect(() => {
@@ -148,10 +188,10 @@ export function Typing(props: {
   );
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       {enabled ? null : (
-        <div className="absolute left-1/2 top-1/2 z-10 h-screen w-full -translate-x-1/2 -translate-y-1/2">
-          <div className="h-full w-full backdrop-blur-lg backdrop-filter">
+        <div className="absolute left-1/2 top-1/2 z-10 h-full w-screen -translate-x-1/2 -translate-y-1/2">
+          <div className="h-[130%] w-full backdrop-blur-lg backdrop-filter">
             {complete ? (
               <Restart
                 handleNext={props.nextHanler}
@@ -163,23 +203,19 @@ export function Typing(props: {
           </div>
         </div>
       )}
-      <div className="-z-0 h-screen min-h-[400px] w-full">
-        {/* */}
-        {/* */}
-        <div className="container mx-auto min-h-[500px] w-full justify-center pt-32 leading-relaxed text-gray-200">
-          <pre className="container mx-auto flex h-full items-center justify-center">
+      <div className="-z-0 h-full min-h-[400px] w-full items-center">
+        <div className="relative mx-auto min-h-[500px] w-full items-center justify-center pt-32 leading-relaxed text-gray-200">
+          <pre className="absolute left-1/2 top-4 min-w-[800px] -translate-x-1/2 items-center justify-center whitespace-pre-line">
             {typingState.spans}
           </pre>
         </div>
-        {/* */}
         <div
           id="timer"
-          className="container col-span-1 mx-auto flex min-h-[44px] justify-center text-gray-200"
+          className="container mx-auto flex min-h-[44px] justify-center text-gray-200"
         >
           {enabled ? timerState : "Paused"}
         </div>
-        {/* */}
-        <div className="container col-span-1 mx-auto h-2.5 max-w-[800px] justify-center rounded-full bg-gray-200 dark:bg-gray-700">
+        <div className="container mx-auto h-2.5 max-w-[800px] justify-center rounded-full bg-gray-200 dark:bg-gray-700">
           <div
             className="h-2.5 rounded-full bg-primary-800"
             style={{
@@ -188,6 +224,7 @@ export function Typing(props: {
           ></div>
         </div>
       </div>
+      <div className="flex h-full"></div>
     </div>
   );
 }
@@ -223,20 +260,12 @@ function niceTimeSince(start_time: number): string {
 }
 function useKeypressListener(
   handler: (arg0: KeyboardEvent) => void,
-  element: Window,
-  ...triggers: object[]
+  triggers: unknown[],
 ) {
-  const savedHandler = useRef(handler);
-
   useEffect(() => {
-    savedHandler.current = handler;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, triggers);
-
-  useEffect(() => {
-    const eventListener = (event) => savedHandler.current(event);
-    element.addEventListener("keydown", eventListener);
-    return () => element.removeEventListener("keydown", eventListener);
+    const eventListener = (event) => handler(event);
+    document.addEventListener("keydown", eventListener);
+    return () => document.removeEventListener("keydown", eventListener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, triggers);
 }
@@ -259,11 +288,14 @@ function handleKeypress(
   }
   if (event.key == "Backspace") {
     state.error[Math.max(state.position, 0)] = "";
+
+    let lastNl = 0;
     for (let i = 0; i < text.length; i++) {
-      state.spans[i] = updateSpecialSpan(
+      [state.spans[i], lastNl] = updateSpecialSpan(
         text,
         state.error[i],
         Math.max(state.position - 1, 0),
+        lastNl,
         i,
       );
     }
@@ -277,11 +309,13 @@ function handleKeypress(
       text[state.position],
       event.key,
     );
+    let lastNl = 0;
     for (let i = 0; i < text.length; i++) {
-      state.spans[i] = updateSpecialSpan(
+      [state.spans[i], lastNl] = updateSpecialSpan(
         text,
         state.error[i],
         state.position + 1,
+        lastNl,
         i,
       );
     }
@@ -320,7 +354,7 @@ function keypressCorrect(targetChar: string, key: string) {
 function Pause({ handleResume }: { handleResume: () => void }) {
   useEffect(() => {
     const el = (e: KeyboardEvent) => {
-      if (e.key == "Enter" || e.key == "Space") {
+      if (e.key == "Enter" || e.key == " ") {
         handleResume();
         e.preventDefault();
       }
@@ -343,7 +377,7 @@ function Pause({ handleResume }: { handleResume: () => void }) {
             <title>Resume</title>
             <path
               d="M35 25 L35 75 L75 50 Z"
-              className="fill-primary-500 stroke-primary-500"
+              // className="fill-primary-500 stroke-primary-500"
               strokeLinejoin="round"
               strokeWidth="8"
             />
@@ -380,9 +414,7 @@ function Restart({
         <button
           className="container flex items-center rounded-xl fill-primary-500 stroke-primary-500 font-bold text-gray-600 hover:bg-primary-600 hover:fill-black hover:stroke-black hover:text-black"
           onClick={handleRestart}
-          onKeyDown={(e) => {
-            console.log(e.key);
-          }}
+          onKeyDown={(e) => {}}
         >
           <div>
             <svg
@@ -392,10 +424,7 @@ function Restart({
               xmlns="http://www.w3.org/2000/svg"
             >
               <title>restart</title>
-              <path
-                // className="fill-primary-500 stroke-primary-500 "
-                d="M15.88 13.84c-1.68-3.48-5.44-5.24-9.040-4.6l0.96-1.8c0.24-0.4 0.080-0.92-0.32-1.12-0.4-0.24-0.92-0.080-1.12 0.32l-1.96 3.64c0 0-0.44 0.72 0.24 1.040l3.64 1.96c0.12 0.080 0.28 0.12 0.4 0.12 0.28 0 0.6-0.16 0.72-0.44 0.24-0.4 0.080-0.92-0.32-1.12l-1.88-1.040c2.84-0.48 5.8 0.96 7.12 3.68 1.6 3.32 0.2 7.32-3.12 8.88-1.6 0.76-3.4 0.88-5.080 0.28s-3.040-1.8-3.8-3.4c-0.76-1.6-0.88-3.4-0.28-5.080 0.16-0.44-0.080-0.92-0.52-1.080-0.4-0.080-0.88 0.16-1.040 0.6-0.72 2.12-0.6 4.36 0.36 6.36s2.64 3.52 4.76 4.28c0.92 0.32 1.84 0.48 2.76 0.48 1.24 0 2.48-0.28 3.6-0.84 4.16-2 5.92-7 3.92-11.12z"
-              ></path>
+              <path d="M15.88 13.84c-1.68-3.48-5.44-5.24-9.040-4.6l0.96-1.8c0.24-0.4 0.080-0.92-0.32-1.12-0.4-0.24-0.92-0.080-1.12 0.32l-1.96 3.64c0 0-0.44 0.72 0.24 1.040l3.64 1.96c0.12 0.080 0.28 0.12 0.4 0.12 0.28 0 0.6-0.16 0.72-0.44 0.24-0.4 0.080-0.92-0.32-1.12l-1.88-1.040c2.84-0.48 5.8 0.96 7.12 3.68 1.6 3.32 0.2 7.32-3.12 8.88-1.6 0.76-3.4 0.88-5.080 0.28s-3.040-1.8-3.8-3.4c-0.76-1.6-0.88-3.4-0.28-5.080 0.16-0.44-0.080-0.92-0.52-1.080-0.4-0.080-0.88 0.16-1.040 0.6-0.72 2.12-0.6 4.36 0.36 6.36s2.64 3.52 4.76 4.28c0.92 0.32 1.84 0.48 2.76 0.48 1.24 0 2.48-0.28 3.6-0.84 4.16-2 5.92-7 3.92-11.12z"></path>
             </svg>
           </div>
           <div className="mx-auto flex pr-4">{"<Esc>"}</div>
@@ -406,7 +435,6 @@ function Restart({
           className="flex items-center rounded-xl stroke-primary-500 font-bold text-gray-600 hover:bg-primary-600 hover:fill-primary-600 hover:stroke-black hover:text-black"
           onClick={handleNext}
           onKeyDown={(e) => {
-            console.log(e);
             if (e.key == "Enter") {
               handleNext();
             }
@@ -436,32 +464,45 @@ function updateSpecialSpan(
   text: string,
   span_error: string,
   next_index: number,
+  lastNewline: number,
   i: number,
-) {
-  const [n_char, no_mut] = specialCharChar(text[i]);
+): [JSX.Element, number] {
+  let [n_char, no_mut] = specialCharChar(text[i]);
+  if (text[i] == "\n") {
+    lastNewline = i;
+  } else if (i - lastNewline >= 79 && isWhitespace(text[i])) {
+    n_char += "\n";
+    lastNewline = i;
+  }
   if (i == next_index) {
-    return (
+    return [
       <span key={i} className={no_mut ? next_col : next_col_mut}>
         {n_char}
-      </span>
-    );
+      </span>,
+      lastNewline,
+    ];
   }
   if (i > next_index) {
-    return (
+    return [
       <span key={i} className={no_mut ? no_col : no_col_mut}>
         {n_char}
-      </span>
-    );
+      </span>,
+      lastNewline,
+    ];
   }
   let col = no_mut ? right_col : right_col_mut;
   if (span_error != "") {
     col = no_mut ? wrong_col : wrong_col_mut;
   }
-  return (
+  return [
     <span key={i} className={col}>
       {n_char}
-    </span>
-  );
+    </span>,
+    lastNewline,
+  ];
+}
+function isWhitespace(char: string) {
+  return char == " " || char == "\n" || char == "\t";
 }
 export function CatchBoundary() {
   const caught = useParams();
