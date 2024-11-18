@@ -23,14 +23,30 @@ pub async fn text_for_typing(
         error!("Failed to get user length preference due to {}.", e);
         150
     });
-    let start_idx = len * item;
-    let end_idx = len * (item + 1);
     let mut text = text.context("Failed fetching text from database.")?;
-    let prog = end_idx as f32 / text.len() as f32;
-    text.drain(..start_idx);
-    text.drain(end_idx..);
-
-    Ok((text, prog.max(1.0)))
+    let prog: f32;
+    (text, prog) = trim_text(text, len, item).ok_or(anyhow!("Invalid item"))?;
+    Ok((text, prog))
+}
+fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> {
+    let mut chunks = vec![];
+    let mut chunk_start: usize = 0;
+    for (i, char) in text.chars().enumerate() {
+        if i - chunk_start <= len {
+            continue;
+        }
+        if char == '\n' || char == '\t' || char == ' ' {
+            chunks.push((chunk_start, i));
+            chunk_start = i
+        }
+    }
+    let olen = text.len() as f32;
+    chunks.push((chunk_start, text.len()));
+    let item = chunks.get(idx)?;
+    text.drain(item.1..);
+    text.drain(..item.0);
+    let prog = item.1 as f32 / olen;
+    Some((text, prog.min(1.0).max(0.0)))
 }
 
 async fn create_topic_epic(topic: String, client: &awc::Client) -> Result<CodeBlock> {
@@ -109,6 +125,30 @@ fn parse_md_lang(text: &str, start_idx: usize) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
+    #[test]
+    fn test_text() {
+        let s = include_str!("system_prompt.txt");
+        let clip_len = 150;
+        let mut outs = vec![];
+        let mut i = 0;
+        loop {
+            let text = String::from(s);
+            let Some(t) = trim_text(text, clip_len, i) else {
+                break;
+            };
+            outs.push(t);
+            i += 1;
+        }
+        assert!(outs.len() > 1);
+        for out in &outs[..outs.len() - 1] {
+            assert!(out.0.len() >= clip_len, "{}:{}", out.0.len(), clip_len);
+        }
+        assert_eq!(
+            outs.iter().map(|i| &*i.0).collect::<Vec<&str>>().join(""),
+            s,
+        );
+    }
 
     #[test]
     fn test_parse_md() {

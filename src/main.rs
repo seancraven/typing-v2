@@ -76,15 +76,15 @@ async fn get_random_topic(db: web::Data<DB>) -> impl Responder {
     else {
         return HttpResponse::InternalServerError().finish();
     };
-    HttpResponse::Ok().json(json! ({"project": topic, "project_id": id}))
+    HttpResponse::Ok().json(json! ({"topic": topic, "topic_id": id}))
 }
-#[get("/{user_id}/{project_id}/{item}")]
+#[get("/{user_id}/{topic_id}/{item}")]
 async fn get_text(db: web::Data<DB>, path_data: web::Path<(String, i32, usize)>) -> impl Responder {
-    let (user_id, project_id, item) = path_data.into_inner();
+    let (user_id, topic_id, item) = path_data.into_inner();
     let Ok(user_id) = uuid::Uuid::try_parse(&user_id) else {
         return HttpResponse::BadRequest().body("Invalid user id.");
     };
-    let Ok((text, progress)) = text_for_typing(&db, user_id, project_id, item)
+    let Ok((text, progress)) = text_for_typing(&db, user_id, topic_id, item)
         .await
         .map_err(|e| {
             error!("Generation of text failed with {:?}.", e);
@@ -98,7 +98,7 @@ async fn get_text(db: web::Data<DB>, path_data: web::Path<(String, i32, usize)>)
         _ => format!("{}", (item + 1)),
     };
     HttpResponse::Ok().json(
-        json! ({"text": text, "progress": progress , "item": next_item, "project": project_id}),
+        json! ({"text": text, "progress": progress , "next_item": next_item, "topic": topic_id}),
     )
 }
 #[post("/register")]

@@ -1,7 +1,7 @@
 export default function Journey({
   nameProgress,
 }: {
-  nameProgress: { project: string; progress: number }[];
+  nameProgress: { topic: string; progress: number }[];
 }) {
   return (
     <div className="container flex w-full max-w-4xl items-center p-6">
@@ -13,7 +13,7 @@ export default function Journey({
           >
             <div className="mt-auto flex justify-end text-sm">
               <span className="mt-auto justify-end font-medium text-gray-700">
-                {item.project}
+                {item.topic}
               </span>
               <span className="ml-auto justify-end text-gray-500">
                 {item.progress.toFixed(1)}%

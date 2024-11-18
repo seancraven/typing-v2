@@ -1,4 +1,5 @@
 import { useFetcher, Link } from "@remix-run/react";
+import { action } from "~/routes/app.login";
 type Fields = {
   header_text: string;
   destination: string;
@@ -32,15 +33,6 @@ export default function LoginWidget({ isLogin }: { isLogin: boolean }) {
   return (
     <section className="z-30 w-full backdrop-blur-lg backdrop-filter">
       <div className="mx-auto flex flex-col items-center justify-center px-6 py-8 md:h-full lg:py-0">
-        {/* <a
-          className="flex items-center space-x-3 rtl:space-x-reverse py-3"
-          href="/"
-        >
-          <img src="/image.webp" className="h-8" alt="ChadType Logo" />
-          <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">
-            ChadType
-          </span>
-        </a> */}
         <div className="w-full rounded-lg bg-white shadow sm:max-w-md md:mt-0 xl:p-0 dark:border dark:border-gray-700 dark:bg-gray-800">
           <div className="space-y-4 p-6 sm:p-8 md:space-y-6">
             <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">

@@ -2,11 +2,11 @@ import { createCookieSessionStorage } from "@remix-run/node"; // or cloudflare/d
 
 export type SessionData = {
   userId: string;
-  project: string;
+  topic: string;
   item: string;
 };
 
-type SessionFlashData = {
+export type SessionFlashData = {
   error: string;
 };
 

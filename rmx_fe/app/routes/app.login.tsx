@@ -10,7 +10,6 @@ import { commitSession, getSession } from "~/sessions";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
-
   return session.has("userId");
 }
 export async function action({ request }: ActionFunctionArgs) {
@@ -55,16 +54,17 @@ export async function action({ request }: ActionFunctionArgs) {
         throw new Error("No userid returned from login endpoint.");
       }
       session.set("userId", id);
-      if (session.has("project") && session.has("item")) {
-        const project = session.get("project");
+      const cookies = {
+        headers: {
+          "Set-Cookie": await commitSession(session),
+        },
+      };
+      if (session.has("topic") && session.has("item")) {
+        const topic = session.get("topic");
         const item = session.get("item");
-        return redirect(`/app/${project}/${item}`, {
-          headers: {
-            "Set-Cookie": await commitSession(session),
-          },
-        });
+        return redirect(`/app/${topic}/${item}`, cookies);
       }
-      return redirect(`/app/random/0`);
+      return redirect(`/app/random`, cookies);
       break;
     }
     default: {
@@ -76,6 +76,5 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function Login() {
   const loggedIn = useLoaderData<typeof loader>();
-
   return !loggedIn ? <LoginWidget isLogin={true} /> : null;
 }

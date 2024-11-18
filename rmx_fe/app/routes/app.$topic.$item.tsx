@@ -21,24 +21,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const userId = session.get("userId") ?? null;
   if (!userId) {
     session.unset("userId");
-    return redirect("/login", {
+    return redirect("/app/login", {
       headers: {
         "Set-Cookie": await commitSession(session),
       },
     });
   }
-  if (!params.project || !params.item) {
+  if (!params.topic || !params.item) {
     return redirect("/app/random");
   }
-  if (params.project) session.set("project", params.project);
+  if (params.topic) session.set("topic", params.topic);
   if (params.item) session.set("item", params.item);
-  const endpoint = `${process.env.BE_URL}/${userId}/${params.project}/${params.item}`;
+  const endpoint = `${process.env.BE_URL}/${userId}/${params.topic}/${params.item}`;
   const promise = fetch(endpoint).then(
     (
       resp,
     ): Promise<{
       text: string;
-      project: string;
+      topic: string;
       next_item: string;
       progress: number;
     }> => {
@@ -71,19 +71,21 @@ export default function TypingTest() {
   const { promise, userId } = useLoaderData<typeof loader>();
   const nav = useNavigate();
   const fetcher = useFetcher<typeof action>();
+
   return (
     <div className={"relative h-full w-full justify-center"}>
       <div className="mx-auto h-full w-full items-center text-3xl">
         <Suspense fallback={<div className="w-full">hi before she loads</div>}>
           <Await resolve={promise}>
             {(promise) => {
+              console.log(promise);
               return (
                 <div className="w-min-[800px] w-max-[1600px] mx-auto grid h-[200px] w-2/3 grid-cols-1 items-center">
                   <div className="col-span-1 mx-auto w-[800px]">
                     <Journey
                       nameProgress={[
                         {
-                          project: promise.project,
+                          topic: promise.topic,
                           progress: promise.progress * 100,
                         },
                       ]}
@@ -94,11 +96,11 @@ export default function TypingTest() {
                       text={promise.text}
                       fetcher={fetcher}
                       loggedIn={Boolean(userId)}
-                      nextHanler={() => {
-                        if (promise.next_item != "done") {
-                          nav(`/app/${promise.project}/${promise.next_item}`);
+                      nextHandler={() => {
+                        if (promise.next_item == "done") {
+                          nav(`/app/random`);
                         }
-                        nav(`/app/random/0`);
+                        nav(`/app/${promise.topic}/${promise.next_item}`);
                       }}
                     />
                   </div>
@@ -122,9 +124,9 @@ export function Typing(props: {
   text: string;
   fetcher: FetcherWithComponents<null>;
   loggedIn: boolean;
-  nextHanler: () => void;
+  nextHandler: () => void;
 }) {
-  const text = props.text.slice(0, 150);
+  const text = props.text;
   const fetcher = props.fetcher;
   const errors: string[] = new Array(text.length).fill("");
   const spanned = new Array(text.length);
@@ -151,6 +153,10 @@ export function Typing(props: {
     setTypingState(defaultSpanState);
     setTimerState("00:00");
     setTimerCallbackState(undefined);
+  };
+  const nextHandler = () => {
+    props.nextHandler();
+    setEnabled(true);
   };
 
   const keypressCallback = (event: KeyboardEvent) =>
@@ -193,10 +199,7 @@ export function Typing(props: {
         <div className="absolute left-1/2 top-1/2 z-10 h-full w-screen -translate-x-1/2 -translate-y-1/2">
           <div className="h-[130%] w-full backdrop-blur-lg backdrop-filter">
             {complete ? (
-              <Restart
-                handleNext={props.nextHanler}
-                handleRestart={resetHandler}
-              />
+              <Restart handleNext={nextHandler} handleRestart={resetHandler} />
             ) : (
               <Pause handleResume={() => setEnabled(true)} />
             )}

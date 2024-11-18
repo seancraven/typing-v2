@@ -6,14 +6,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const userId = session.get("userId") ?? null;
   if (!userId) {
     session.unset("userId");
-    return redirect("/login", {
+    return redirect("/app/login", {
       headers: {
         "Set-Cookie": await commitSession(session),
       },
     });
   }
   const resp = await fetch(`${process.env.BE_URL}/random`);
-  const project = await resp.json();
+  const topic = await resp.json();
 
-  return redirect(`/app/${project.project_id}/0`);
+  return redirect(`/app/${topic.topic_id}/0`);
 }
