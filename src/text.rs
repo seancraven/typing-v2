@@ -1,7 +1,10 @@
+use std::{f32::NAN, usize};
+
 use actix_web::HttpResponse;
 use anyhow::{anyhow, Context, Result};
 use log::{error, warn};
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use tokio::join;
 use uuid::Uuid;
 
@@ -10,23 +13,63 @@ use crate::{llm_client, store::DB};
 const P_GEN: f64 = 0.99;
 const SYSTEM_PROMPT: &'static str = include_str!("system_prompt.txt");
 const MAX_GENERATION_RETRY: usize = 3;
+#[derive(Serialize)]
+pub struct TypingState {
+    start_index: usize,
+    end_index: usize,
+    text: String,
+    topic_id: usize,
+    progress: f32,
+    done: bool,
+}
+
 pub async fn text_for_typing(
     db: &DB,
     user_id: Uuid,
-    topic: i32,
-    item: usize,
-) -> Result<(String, f32)> {
-    let text_fut = db.get_text(topic);
+    topic_id: i32,
+    start_index: usize,
+) -> Result<TypingState> {
+    let text_fut = db.get_text(topic_id);
     let len_fut = db.get_user_length_pref(user_id);
     let (text, len) = join!(text_fut, len_fut);
     let len = len.unwrap_or_else(|e| {
         error!("Failed to get user length preference due to {}.", e);
         150
     });
-    let mut text = text.context("Failed fetching text from database.")?;
-    let prog: f32;
-    (text, prog) = trim_text(text, len, item).ok_or(anyhow!("Invalid item"))?;
-    Ok((text, prog))
+    let text = text.context("Failed fetching text from database.")?;
+    let text_length = text.len() as f32;
+    let (text, start_index, end_index) =
+        get_next_chonk(text, len, start_index).ok_or(anyhow!("Invalid item"))?;
+    let progress = (end_index as f32 / text_length).max(0.0).min(1.0);
+    let done = progress >= 1.0;
+    Ok(TypingState {
+        start_index,
+        end_index,
+        topic_id: topic_id as usize,
+        text,
+        progress,
+        done,
+    })
+}
+fn get_next_chonk(
+    mut text: String,
+    len: usize,
+    start_idx: usize,
+) -> Option<(String, usize, usize)> {
+    if start_idx >= text.len() {
+        return None;
+    };
+    text.drain(..start_idx);
+    if len > text.len() {
+        let tlen = text.len();
+        return Some((text, start_idx, tlen));
+    }
+    let offset = text[len..]
+        .find(|c| c == '\n' || c == '\t' || c == ' ')
+        // If garbage with no space just truncate.
+        .unwrap_or(0);
+    text.drain(len + offset..);
+    return Some((text, start_idx, len + offset));
 }
 fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> {
     let mut chunks = vec![];

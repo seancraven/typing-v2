@@ -54,6 +54,24 @@ pub enum LoginErr {
 }
 
 impl DB {
+    pub async fn add_run(&self, run: UserData) -> sqlx::error::Result<()> {
+        let mut error_string = String::new();
+        for (key, count) in run.error_chars {
+            error_string.push_str(&format!("{}:{},", key, count));
+        }
+
+        sqlx::query!(
+            r#"INSERT INTO user_runs (user_id, errors, finished, start_index, end_index, topic_id, wpm, type_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8 )"#,
+            run.user_id.parse::<Uuid>().unwrap(),
+            error_string,
+            run.finished,
+            0 as i32,
+            150 as i32,
+            run.topic_id as i32,
+            run.wpm,
+            run.type_time_ms
+        ).execute(&self.pool).await.map(|_|())
+    }
     pub async fn add_user(&self, user: User) -> sqlx::error::Result<uuid::Uuid> {
         sqlx::query_scalar!(
             r#"INSERT INTO users (id, username, password, email) VALUES ($1, $2, $3, $4) RETURNING id;"#,
@@ -82,17 +100,6 @@ impl DB {
             None => Err(LoginErr::NoUser(user.username)),
         }
     }
-    pub async fn add_run(&self, run: TypingRun) -> sqlx::error::Result<()> {
-        sqlx::query!(
-            r#"INSERT INTO typing_run (user_id, wpm, errors) VALUES ($1, $2, $3)"#,
-            run.user_id,
-            run.wpm,
-            run.errors
-        )
-        .execute(&self.pool)
-        .await
-        .map(|_| ())
-    }
     pub async fn ingest_user_documet(&self, text_body: impl AsRef<str>) -> sqlx::error::Result<()> {
         sqlx::query!(
             "INSERT INTO user_documents (body) VALUES ($1);",
@@ -105,13 +112,13 @@ impl DB {
     pub async fn ingest(
         &self,
         text_body: impl AsRef<str>,
-        topic_id: i32,
+        topic: String,
     ) -> sqlx::error::Result<()> {
         let text = text_body.as_ref();
         sqlx::query!(
-            "INSERT INTO texts (body, topic_id, length) VALUES ($1, $2, $3);",
+            "INSERT INTO topics (text, topic, length) VALUES ($1, $2, $3);",
             text,
-            topic_id,
+            topic,
             text.len() as i32
         )
         .execute(&self.pool)
@@ -119,19 +126,16 @@ impl DB {
         .map(|_| ())
     }
     pub async fn get_text(&self, topic_id: i32) -> sqlx::error::Result<String> {
-        sqlx::query!(
-            r#"SELECT body FROM texts WHERE topic_id = $1 ORDER BY id LIMIT 1;"#,
-            topic_id,
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map(|row| row.body)
-    }
-    pub async fn get_random_text(&self) -> sqlx::error::Result<(String, String)> {
-        sqlx::query!(r#"SELECT p.topic, body FROM texts t INNER JOIN topics as p ON p.id = t.topic_id ORDER BY RANDOM() LIMIT 1;"#)
+        sqlx::query!(r#"SELECT text FROM topics WHERE id = $1;"#, topic_id,)
             .fetch_one(&self.pool)
             .await
-            .map(|b| (b.topic, b.body))
+            .map(|row| row.text)
+    }
+    pub async fn get_random_text(&self) -> sqlx::error::Result<(String, String)> {
+        sqlx::query!(r#"SELECT topic, text FROM topics ORDER BY RANDOM() LIMIT 1;"#)
+            .fetch_one(&self.pool)
+            .await
+            .map(|b| (b.topic, b.text))
     }
     pub async fn get_user_length_pref(&self, user_id: Uuid) -> sqlx::error::Result<usize> {
         Ok(150)
@@ -142,11 +146,43 @@ impl DB {
             .await
             .map(|row| (row.id, row.topic))
     }
+    pub async fn get_user_progress(
+        &self,
+        user_id: Uuid,
+    ) -> sqlx::error::Result<Vec<(f32, usize, String)>> {
+        let rows = sqlx::query!(
+            r#"SELECT p.final_idx, p.topic_id, t.topic ,t.text
+            FROM user_progress as p INNER JOIN topics as t on p.topic_id = t.id
+            WHERE user_id = $1;"#,
+            user_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut out = Vec::with_capacity(rows.len());
+        for row in rows {
+            out.push((
+                row.final_idx as f32 / row.text.len() as f32,
+                row.topic_id as usize,
+                row.topic,
+            ));
+        }
+        Ok(out)
+    }
     pub async fn get_max_progress_by_topic(&self) -> sqlx::error::Result<Vec<(f32, usize)>> {
-        todo!()
-        // sqlx::query!(r#"SELECT "#)
-        //     .fetch_all(&self.pool)
-        //     .await
-        //     .map(|row| (row.id, row.topic))
+        Ok(sqlx::query!(
+            r#"SELECT topic_id, MAX(final_idx), length
+            FROM user_progress as p INNER JOIN topics t on p.topic_id = t.id
+            GROUP BY topic_id, final_idx, length;"#
+        )
+        .fetch_all(&self.pool)
+        .await?
+        .into_iter()
+        .map(|row| {
+            (
+                row.max.unwrap_or(0) as f32 / row.length as f32,
+                row.topic_id as usize,
+            )
+        })
+        .collect())
     }
 }

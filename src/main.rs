@@ -1,12 +1,12 @@
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{
     body::BoxBody,
-    error::ErrorInternalServerError,
+    error::{ErrorInternalServerError, ErrorUnprocessableEntity},
     get,
     middleware::Logger,
     post,
     web::{self, Json},
-    App, HttpResponse, Responder, ResponseError,
+    App, HttpResponse, Responder, ResponseError, Result,
 };
 use awc::{Client, Connector};
 use log::{error, info};
@@ -16,6 +16,7 @@ use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc, time::Duratio
 use store::{LoginErr, DB};
 use text::text_for_typing;
 use tokio::join;
+use uuid::Uuid;
 
 mod llm_client;
 mod store;
@@ -78,13 +79,13 @@ async fn get_random_topic(db: web::Data<DB>) -> impl Responder {
     };
     HttpResponse::Ok().json(json! ({"topic": topic, "topic_id": id}))
 }
-#[get("/{user_id}/{topic_id}/{item}")]
+#[get("/{user_id}/{topic_id}/{start_idx}")]
 async fn get_text(db: web::Data<DB>, path_data: web::Path<(String, i32, usize)>) -> impl Responder {
     let (user_id, topic_id, item) = path_data.into_inner();
     let Ok(user_id) = uuid::Uuid::try_parse(&user_id) else {
         return HttpResponse::BadRequest().body("Invalid user id.");
     };
-    let Ok((text, progress)) = text_for_typing(&db, user_id, topic_id, item)
+    let Ok(typing_state) = text_for_typing(&db, user_id, topic_id, item)
         .await
         .map_err(|e| {
             error!("Generation of text failed with {:?}.", e);
@@ -93,13 +94,7 @@ async fn get_text(db: web::Data<DB>, path_data: web::Path<(String, i32, usize)>)
     else {
         return HttpResponse::InternalServerError().body("Text generation failed.");
     };
-    let next_item = match progress {
-        1.0 => String::from("done"),
-        _ => format!("{}", (item + 1)),
-    };
-    HttpResponse::Ok().json(
-        json! ({"text": text, "progress": progress , "next_item": next_item, "topic": topic_id}),
-    )
+    HttpResponse::Ok().json(typing_state)
 }
 #[post("/register")]
 async fn register(state: web::Data<DB>, data: Json<store::User>) -> impl Responder {
@@ -134,23 +129,47 @@ pub struct UserData {
     user_id: String,
     error_chars: HashMap<String, usize>,
     finished: bool,
+    topic_id: usize,
+    item_id: usize,
     wpm: f64,
     type_time_ms: f64,
 }
 #[post("/user/data")]
-async fn data_handler(state: web::Data<DB>, data: Json<UserData>) -> impl Responder {
-    if data.finished {
-        info!("Run didn't finish, no data was logged.");
-        return HttpResponse::Ok().finish();
+async fn data_handler(state: web::Data<DB>, data: Json<UserData>) -> Result<impl Responder> {
+    data.user_id
+        .parse::<Uuid>()
+        .map_err(ErrorUnprocessableEntity)?;
+    match state.add_run(data.into_inner()).await {
+        Ok(_) => Ok(HttpResponse::Ok().finish()),
+        Err(e) => Err(ErrorInternalServerError(e)),
     }
-    let Ok(user_data) = data.into_inner().try_into() else {
-        log::error!("Conversion of the user data failed.");
-        return ErrorInternalServerError("Unexpected Server error.").error_response();
-    };
-    match state.add_run(user_data).await {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(e) => SQLXError(e).error_response(),
-    }
+}
+#[derive(Debug, Serialize)]
+struct TopicProgress {
+    topic: String,
+    topic_id: usize,
+    progress: f32,
+}
+#[get("/{user_id}/progress")]
+async fn get_progress(
+    state: web::Data<DB>,
+    user_id: web::Path<String>,
+) -> actix_web::Result<impl Responder> {
+    let user_id = user_id.parse().map_err(ErrorUnprocessableEntity)?;
+    let mut progs = state
+        .get_user_progress(user_id)
+        .await
+        .map_err(ErrorInternalServerError)?
+        .into_iter()
+        .map(|row| TopicProgress {
+            topic: row.2,
+            topic_id: row.1,
+            progress: row.0,
+        })
+        .collect::<Vec<TopicProgress>>();
+
+    progs.sort_by(|a, b| a.progress.total_cmp(&b.progress));
+    Ok(HttpResponse::Ok().json(progs))
 }
 #[derive(MultipartForm, Debug)]
 struct Upload {
