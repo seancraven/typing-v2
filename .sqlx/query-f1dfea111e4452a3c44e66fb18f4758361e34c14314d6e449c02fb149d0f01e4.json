@@ -1,16 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO texts (body, topic_id, length) VALUES ($1, $2, $3);",
+  "query": "INSERT INTO topics (text, topic, length) VALUES ($1, $2, $3);",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
         "Text",
-        "Int4",
+        "Text",
         "Int4"
       ]
     },
     "nullable": []
   },
-  "hash": "62148d6e466ec4f6884836c20128bbf1f9fb10b63484eaaf3ea7e8bfef049670"
+  "hash": "f1dfea111e4452a3c44e66fb18f4758361e34c14314d6e449c02fb149d0f01e4"
 }

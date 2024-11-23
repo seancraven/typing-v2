@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.final_idx, p.topic_id, t.topic ,t.text\n            FROM user_progress as p INNER JOIN topics as t on p.topic_id = t.id\n            WHERE user_id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "final_idx",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "topic_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "topic",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "text",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3df1f2b19b0f7d84635fdcc0e3d64ea89d8edd156ec868ed833637152a8fd42a"
+}

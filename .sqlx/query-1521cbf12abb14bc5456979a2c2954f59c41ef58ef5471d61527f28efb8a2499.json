@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT p.topic, body FROM texts t INNER JOIN topics as p ON p.id = t.topic_id ORDER BY RANDOM() LIMIT 1;",
+  "query": "SELECT topic, text FROM topics ORDER BY RANDOM() LIMIT 1;",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "body",
+        "name": "text",
         "type_info": "Text"
       }
     ],
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "0f1576da5908b68e06f77e3b6d0777b6d7eb6dc0d19b2f7c86b2b1224207fecb"
+  "hash": "1521cbf12abb14bc5456979a2c2954f59c41ef58ef5471d61527f28efb8a2499"
 }
