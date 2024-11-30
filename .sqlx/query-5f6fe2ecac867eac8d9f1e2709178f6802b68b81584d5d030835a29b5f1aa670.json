@@ -1,20 +1,20 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id FROM users LIMIT 0;",
+  "query": "SELECT topic_text FROM topics WHERE id = $1;",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "topic_text",
         "ordinal": 0,
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false
     ]
   },
-  "hash": "b6743532ba91f56227471565453ead3136c6a2cf88a30b3d68b8d8182cff351d"
+  "hash": "5f6fe2ecac867eac8d9f1e2709178f6802b68b81584d5d030835a29b5f1aa670"
 }

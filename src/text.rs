@@ -1,17 +1,15 @@
-use std::{f32::NAN, usize};
+use std::{time::Duration, usize};
 
-use actix_web::HttpResponse;
 use anyhow::{anyhow, Context, Result};
 use log::{error, warn};
-use rand::Rng;
-use serde::{Deserialize, Serialize};
-use tokio::join;
+use serde::Serialize;
+use tokio::{join, time::sleep};
 use uuid::Uuid;
 
 use crate::{llm_client, store::DB};
 
 const P_GEN: f64 = 0.99;
-const SYSTEM_PROMPT: &'static str = include_str!("system_prompt.txt");
+const SYSTEM_PROMPT: &str = include_str!("system_prompt.txt");
 const MAX_GENERATION_RETRY: usize = 3;
 #[derive(Serialize)]
 pub struct TypingState {
@@ -29,8 +27,8 @@ pub async fn text_for_typing(
     topic_id: i32,
     start_index: usize,
 ) -> Result<TypingState> {
-    let text_fut = db.get_text(topic_id);
-    let len_fut = db.get_user_length_pref(user_id);
+    let text_fut = db.text(topic_id);
+    let len_fut = db.user_length_pref(user_id);
     let (text, len) = join!(text_fut, len_fut);
     let len = len.unwrap_or_else(|e| {
         error!("Failed to get user length preference due to {}.", e);
@@ -92,11 +90,23 @@ fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> 
     Some((text, prog.min(1.0).max(0.0)))
 }
 
+async fn text_generation(db: &DB, client: &awc::Client) -> Result<()> {
+    loop {
+        sleep(Duration::from_secs(10)).await;
+        let progress = match db.get_max_progress_by_topic().await {
+            Ok(progress) => progress,
+            Err(e) => {
+                error!("During text generation database error occured {e}");
+                continue;
+            }
+        };
+    }
+}
 async fn create_topic_epic(topic: String, client: &awc::Client) -> Result<CodeBlock> {
     let user_message = format!("Please help me write a correct program about {}", topic);
     for _ in 0..MAX_GENERATION_RETRY {
         let resp_result = llm_client::single_question(SYSTEM_PROMPT, &user_message, client).await;
-        let mut resp = match resp_result {
+        let resp = match resp_result {
             Ok(t) => t,
             Err(e) => {
                 error!(
@@ -168,7 +178,6 @@ fn parse_md_lang(text: &str, start_idx: usize) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::Result;
     #[test]
     fn test_text() {
         let s = include_str!("system_prompt.txt");

@@ -1,15 +1,15 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, topic FROM topics ORDER BY RANDOM() LIMIT 1",
+  "query": "SELECT topic, topic_text FROM topics ORDER BY RANDOM() LIMIT 1;",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "topic",
         "ordinal": 0,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "topic",
+        "name": "topic_text",
         "ordinal": 1,
         "type_info": "Text"
       }
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "5b64bbe84a857dad0faa4884e119d7e149aff97d66b3057577241d591637c236"
+  "hash": "1bde43c8152ab4634028742fc084f011579caed7ab7b86126cabbf2b6763d441"
 }

@@ -1,26 +1,26 @@
 {
-  "db_name": "PostgreSQL",
-  "query": "SELECT topic, text FROM topics ORDER BY RANDOM() LIMIT 1;",
+  "db_name": "SQLite",
+  "query": "SELECT id, user_password FROM users WHERE username = $1",
   "describe": {
     "columns": [
       {
+        "name": "id",
         "ordinal": 0,
-        "name": "topic",
         "type_info": "Text"
       },
       {
+        "name": "user_password",
         "ordinal": 1,
-        "name": "text",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Right": 1
     },
     "nullable": [
       false,
       false
     ]
   },
-  "hash": "1521cbf12abb14bc5456979a2c2954f59c41ef58ef5471d61527f28efb8a2499"
+  "hash": "39ce5bc93335d2abb8ab8ad1a572b179fb1a7db91000293ff7a7eeadc2f11449"
 }

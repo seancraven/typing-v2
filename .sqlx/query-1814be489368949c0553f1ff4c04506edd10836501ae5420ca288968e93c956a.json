@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id FROM users LIMIT 0;",
+  "query": "INSERT INTO users (id, username, user_password, email) VALUES ($1, $2, $3, $4) RETURNING id;",
   "describe": {
     "columns": [
       {
@@ -10,11 +10,11 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 4
     },
     "nullable": [
       false
     ]
   },
-  "hash": "b6743532ba91f56227471565453ead3136c6a2cf88a30b3d68b8d8182cff351d"
+  "hash": "1814be489368949c0553f1ff4c04506edd10836501ae5420ca288968e93c956a"
 }

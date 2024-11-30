@@ -15,7 +15,6 @@ use serde_json::json;
 use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc, time::Duration};
 use store::{LoginErr, DB};
 use text::text_for_typing;
-use tokio::join;
 use uuid::Uuid;
 
 mod llm_client;
@@ -71,7 +70,7 @@ async fn check_health(state: web::Data<DB>) -> impl Responder {
 #[get("/random")]
 async fn get_random_topic(db: web::Data<DB>) -> impl Responder {
     let Ok((id, topic)) = db
-        .get_random_topic()
+        .random_topic()
         .await
         .map_err(|e| error!("Random topic fetching failed {}.", e))
     else {
@@ -157,7 +156,7 @@ async fn get_progress(
 ) -> actix_web::Result<impl Responder> {
     let user_id = user_id.parse().map_err(ErrorUnprocessableEntity)?;
     let mut progs = state
-        .get_user_progress(user_id)
+        .user_progress(user_id)
         .await
         .map_err(ErrorInternalServerError)?
         .into_iter()
@@ -190,7 +189,7 @@ async fn inget_handler(
     };
     match state.ingest_user_documet(string).await {
         Ok(()) => HttpResponse::Ok().finish(),
-        Err(e) => SQLXError(e).error_response(),
+        Err(e) => ErrorInternalServerError(e).error_response(),
     }
 }
 

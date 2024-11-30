@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT p.final_idx, p.topic_id, t.topic ,t.topic_text\n            FROM user_progress as p INNER JOIN topics as t on p.topic_id = t.id\n            WHERE user_id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "name": "final_idx",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "topic_id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "topic",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "topic_text",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ae664741f50f413873298cd7b15e8cdf8a7eb1ce1b79d87a3964fbfbbb63d3d2"
+}
