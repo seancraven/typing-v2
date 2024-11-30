@@ -126,7 +126,7 @@ struct Candidate {
 }
 mod test {
 
-    use super::*;
+    
     #[test]
     fn test_serialise() -> serde_json::Result<()> {
         let cases = vec![
