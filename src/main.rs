@@ -1,18 +1,17 @@
 use actix_multipart::form::{tempfile::TempFile, MultipartForm};
 use actix_web::{
-    body::BoxBody,
     error::{ErrorInternalServerError, ErrorUnprocessableEntity},
     get,
     middleware::Logger,
     post,
     web::{self, Json},
-    App, HttpResponse, Responder, ResponseError, Result,
+    App, HttpResponse, Responder, Result,
 };
 use awc::{Client, Connector};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{collections::HashMap, fmt::Display, io::Read, sync::Arc, time::Duration};
+use std::{collections::HashMap, io::Read, sync::Arc, time::Duration};
 use store::{LoginErr, DB};
 use text::text_for_typing;
 use uuid::Uuid;
@@ -193,19 +192,6 @@ async fn inget_handler(
     }
 }
 
-#[derive(Debug)]
-struct SQLXError(sqlx::Error);
-impl Display for SQLXError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
-impl ResponseError for SQLXError {
-    fn error_response(&self) -> actix_web::HttpResponse<BoxBody> {
-        log::error!("{}", self.0);
-        ErrorInternalServerError("Unexpected server error.").into()
-    }
-}
 fn rustls_config() -> rustls::ClientConfig {
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()

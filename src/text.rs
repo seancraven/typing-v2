@@ -1,4 +1,4 @@
-use std::{time::Duration, usize};
+use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
 use log::{error, warn};
@@ -11,6 +11,7 @@ use crate::{llm_client, store::DB};
 const P_GEN: f64 = 0.99;
 const SYSTEM_PROMPT: &str = include_str!("system_prompt.txt");
 const MAX_GENERATION_RETRY: usize = 3;
+
 #[derive(Serialize)]
 pub struct TypingState {
     start_index: usize,
@@ -38,7 +39,7 @@ pub async fn text_for_typing(
     let text_length = text.len() as f32;
     let (text, start_index, end_index) =
         get_next_chonk(text, len, start_index).ok_or(anyhow!("Invalid item"))?;
-    let progress = (end_index as f32 / text_length).max(0.0).min(1.0);
+    let progress = (end_index as f32 / text_length).clamp(0.0, 1.0);
     let done = progress >= 1.0;
     Ok(TypingState {
         start_index,
@@ -63,11 +64,11 @@ fn get_next_chonk(
         return Some((text, start_idx, tlen));
     }
     let offset = text[len..]
-        .find(|c| c == '\n' || c == '\t' || c == ' ')
+        .find(['\n', '\t', ' '])
         // If garbage with no space just truncate.
         .unwrap_or(0);
     text.drain(len + offset..);
-    return Some((text, start_idx, len + offset));
+    Some((text, start_idx, len + offset))
 }
 fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> {
     let mut chunks = vec![];
@@ -87,7 +88,7 @@ fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> 
     text.drain(item.1..);
     text.drain(..item.0);
     let prog = item.1 as f32 / olen;
-    Some((text, prog.min(1.0).max(0.0)))
+    Some((text, prog.clamp(0.0, 1.0)))
 }
 
 async fn text_generation(db: &DB, client: &awc::Client) -> Result<()> {
@@ -147,7 +148,7 @@ fn clean_llm_response_to_markdown(mut text: String) -> Result<CodeBlock> {
     };
     text.drain(..start_idx);
     text.drain(stop_idx..);
-    return Ok(CodeBlock { lang, text });
+    Ok(CodeBlock { lang, text })
 }
 
 fn parse_md_lang(text: &str, start_idx: usize) -> Result<String> {
@@ -172,7 +173,7 @@ fn parse_md_lang(text: &str, start_idx: usize) -> Result<String> {
     if lang.is_empty() {
         return Err(anyhow!("Can't find language."));
     }
-    return Ok(lang);
+    Ok(lang)
 }
 
 #[cfg(test)]

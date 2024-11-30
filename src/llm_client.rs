@@ -1,8 +1,8 @@
-use core::str;
-
 use anyhow::{anyhow, Context};
 use awc::{self, Client};
+use core::str;
 use serde::{Deserialize, Serialize};
+
 pub async fn single_question(
     system_message: impl Into<String>,
     user_message: impl Into<String>,
@@ -125,8 +125,8 @@ struct Candidate {
     content: Content,
 }
 mod test {
+    use super::*;
 
-    
     #[test]
     fn test_serialise() -> serde_json::Result<()> {
         let cases = vec![
