@@ -8,7 +8,7 @@ pub async fn single_question(
     user_message: impl Into<String>,
     client: &Client,
 ) -> anyhow::Result<String> {
-    let api_key = std::env::var("GEMINI_API_KEY").unwrap();
+    let api_key = std::env::var("GOOGLE_API_KEY").unwrap();
     let endpoint: String= format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={}", api_key);
     let req = client.post(endpoint);
     let json = GenerationRequest::new_with_contents(vec![
@@ -20,7 +20,8 @@ pub async fn single_question(
         .await
         .map_err(|e| anyhow!("During sending request this occured: {}", e))?;
     let mut out = resp.json::<Response>().await.context(format!(
-        "Json deserialisation of the response failed. Code {:?}",
+        "Json deserialisation of the response failed. Code {}:{:?}",
+        resp.status(),
         str::from_utf8(&resp.body().limit(20_000_000).await.unwrap()).unwrap()
     ))?;
     Ok(std::mem::take(&mut out.candidates[0].content.parts[0].text))
@@ -89,7 +90,7 @@ struct TextGenerationParams {
     pub stop_sequences: Option<Vec<String>>,
     pub response_mime_type: Option<String>,
     pub candidate_count: Option<u32>,
-    pub max_output_tokens: u32,
+    pub max_output_tokens: Option<u32>,
     pub temperature: f32,
     pub top_p: Option<f32>,
     pub top_k: Option<u32>,
@@ -104,7 +105,7 @@ impl Default for TextGenerationParams {
             stop_sequences: None,
             response_mime_type: None,
             candidate_count: None,
-            max_output_tokens: 512,
+            max_output_tokens: None,
             temperature: 0.80,
             top_p: None,
             top_k: None,

@@ -33,29 +33,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   if (params.topic) session.set("topic", params.topic);
   if (params.item) session.set("item", params.item);
   const endpoint = `${process.env.BE_URL}/${userId}/${params.topic}/${params.item}`;
-  const promise = fetch(endpoint).then(
-    (
-      resp,
-    ): Promise<{
-      text: string;
-      topic: string;
-      next_item: string;
-      progress: number;
-    }> => {
-      if (resp.status == 200) {
-        return resp.json();
-      }
-      return { text: "text" };
-    },
+  const promise: {
+    text: string;
+    start_index: number;
+    end_index: number;
+    topic_id: number;
+    done: boolean;
+    topic: string;
+    progress: number;
+  } = await fetch(endpoint).then((r) =>
+    r.status == 200 ? r.json() : { text: "text" },
   );
-  return defer(
-    { promise, userId },
-    {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
-    },
-  );
+  return { promise, userId };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -71,44 +60,39 @@ export default function TypingTest() {
   const { promise, userId } = useLoaderData<typeof loader>();
   const nav = useNavigate();
   const fetcher = useFetcher<typeof action>();
+  const typingKey = `${promise.topic_id}:${promise.start_index}`;
 
   return (
     <div className={"relative h-full w-full justify-center"}>
       <div className="mx-auto h-full w-full items-center text-3xl">
-        <Suspense fallback={<div className="w-full">hi before she loads</div>}>
-          <Await resolve={promise}>
-            {(promise) => {
-              console.log(promise);
-              return (
-                <div className="w-min-[800px] w-max-[1600px] mx-auto grid h-[200px] w-2/3 grid-cols-1 items-center">
-                  <div className="col-span-1 mx-auto w-[800px]">
-                    <Journey
-                      nameProgress={[
-                        {
-                          topic: promise.topic,
-                          progress: promise.progress * 100,
-                        },
-                      ]}
-                    />
-                  </div>
-                  <div className="col-span-1 flex">
-                    <Typing
-                      text={promise.text}
-                      fetcher={fetcher}
-                      loggedIn={Boolean(userId)}
-                      nextHandler={() => {
-                        if (promise.next_item == "done") {
-                          nav(`/app/random`);
-                        }
-                        nav(`/app/${promise.topic}/${promise.next_item}`);
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            }}
-          </Await>
-        </Suspense>
+        <div className="w-min-[800px] w-max-[1600px] mx-auto grid h-[200px] w-2/3 grid-cols-1 items-center">
+          <div className="col-span-1 mx-auto w-[800px]">
+            <Journey
+              nameProgress={[
+                {
+                  topic: promise.topic,
+                  progress: promise.progress * 100,
+                },
+              ]}
+            />
+          </div>
+          <div className="col-span-1 flex">
+            <Typing
+              key={typingKey}
+              text={promise.text}
+              fetcher={fetcher}
+              loggedIn={Boolean(userId)}
+              nextHandler={() => {
+                if (promise.done) {
+                  nav(`/app/random`, { replace: true });
+                }
+                nav(`/app/${promise.topic_id}/${promise.end_index}`, {
+                  replace: true,
+                });
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -155,8 +139,8 @@ export function Typing(props: {
     setTimerCallbackState(undefined);
   };
   const nextHandler = () => {
-    props.nextHandler();
     setEnabled(true);
+    return props.nextHandler();
   };
 
   const keypressCallback = (event: KeyboardEvent) =>

@@ -1,16 +1,37 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
+use actix_web::web;
 use anyhow::{anyhow, Context, Result};
-use log::{error, warn};
+use awc::{Client, Connector};
+use log::{debug, error, info, warn};
+use rand::Rng;
 use serde::Serialize;
-use tokio::{join, time::sleep};
+use tokio::join;
 use uuid::Uuid;
 
-use crate::{llm_client, store::DB};
+use crate::{llm_client, rustls_config, store::DB};
 
 const P_GEN: f64 = 0.99;
 const SYSTEM_PROMPT: &str = include_str!("system_prompt.txt");
 const MAX_GENERATION_RETRY: usize = 3;
+const NEW_TOPIC_COUNT: usize = 10;
+const PROG_MIN: f64 = 0.4;
+const LANGUAGES: [&str; 14] = [
+    "python",
+    "javascript",
+    "java",
+    "cpp",
+    "ruby",
+    "sql",
+    "html",
+    "css",
+    "typescript",
+    "swift",
+    "php",
+    "rust",
+    "kotlin",
+    "go",
+];
 
 #[derive(Serialize)]
 pub struct TypingState {
@@ -68,7 +89,7 @@ fn get_next_chonk(
         // If garbage with no space just truncate.
         .unwrap_or(0);
     text.drain(len + offset..);
-    Some((text, start_idx, len + offset))
+    Some((text, start_idx, start_idx + len + offset))
 }
 fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> {
     let mut chunks = vec![];
@@ -90,20 +111,64 @@ fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> 
     let prog = item.1 as f32 / olen;
     Some((text, prog.clamp(0.0, 1.0)))
 }
-
-async fn text_generation(db: &DB, client: &awc::Client) -> Result<()> {
+pub async fn loop_body(db: &DB, client: &awc::Client) -> Result<()> {
+    let progress = db.max_progress_by_topic().await?;
+    let (sum, len): (f64, f64) = progress
+        .into_iter()
+        .fold((0.0, 0.0), |acc, row| (row.0 + acc.0, acc.1 + 1.0));
+    let topic_count = db.topic_count().await?;
+    let mean_prog = sum / len.max(1.0);
+    info!("Topic count: {}", topic_count);
+    info!("Mean progress: {}", mean_prog);
+    if topic_count == 0 || mean_prog > PROG_MIN {
+        for _ in 0..NEW_TOPIC_COUNT {
+            let topic = create_topic_type(client).await?;
+            let code_block = create_topic_epic(&topic, client).await?;
+            let id = code_block
+                .to_database(&topic, db)
+                .await
+                .context("Insertion of generatied code block failed.")?;
+            info!(
+                "Generated topic {}:{} len {}",
+                id,
+                code_block.lang,
+                code_block.text.len()
+            )
+        }
+    }
+    Ok(())
+}
+pub async fn text_generation(
+    db: web::Data<DB>,
+    tls_config: Arc<rustls::ClientConfig>,
+) -> Result<()> {
+    let client = Client::builder()
+        .connector(Connector::new().rustls_0_23(tls_config))
+        .timeout(Duration::from_secs(60))
+        .finish();
     loop {
-        sleep(Duration::from_secs(10)).await;
-        let progress = match db.get_max_progress_by_topic().await {
-            Ok(progress) => progress,
-            Err(e) => {
-                error!("During text generation database error occured {e}");
-                continue;
-            }
-        };
+        loop_body(&db, &client)
+            .await
+            .map_err(|e| error!("During generation of topics {}", e))
+            .ok();
+        tokio::time::sleep(Duration::from_secs(10)).await;
     }
 }
-async fn create_topic_epic(topic: String, client: &awc::Client) -> Result<CodeBlock> {
+async fn create_topic_type(client: &awc::Client) -> Result<String> {
+    let message = "You are an expert in teaching software development. Please suggest a small part of a program for a learner to write. Great exaples are 'Please write an implmentation of auto-grad in Rust', 'Please write an append only log database in python', 'Write a http request cache in Go for a webserver', the user will suggest the the language they want to write in";
+    let idx = rand::thread_rng().gen_range(0..LANGUAGES.len());
+    let lang = LANGUAGES[idx];
+    llm_client::single_question(
+        message,
+        format!(
+            "Please generate a topic that would be good to write in {}",
+            lang
+        ),
+        client,
+    )
+    .await
+}
+async fn create_topic_epic(topic: &str, client: &awc::Client) -> Result<CodeBlock> {
     let user_message = format!("Please help me write a correct program about {}", topic);
     for _ in 0..MAX_GENERATION_RETRY {
         let resp_result = llm_client::single_question(SYSTEM_PROMPT, &user_message, client).await;
@@ -111,7 +176,7 @@ async fn create_topic_epic(topic: String, client: &awc::Client) -> Result<CodeBl
             Ok(t) => t,
             Err(e) => {
                 error!(
-                    "LLm generation failed on topic {} because of {}.",
+                    "LLm generation failed on topic:\n\n {}\n because of {}.",
                     &topic, e
                 );
                 continue;
@@ -134,12 +199,18 @@ struct CodeBlock {
     lang: String,
     text: String,
 }
+impl CodeBlock {
+    async fn to_database(&self, topic: &str, db: &DB) -> Result<i64> {
+        db.add_topic(topic, &self.text, &self.lang).await
+    }
+}
 
 fn clean_llm_response_to_markdown(mut text: String) -> Result<CodeBlock> {
     let Some(start_idx) = text.find("```") else {
         return Err(anyhow!("Can't find opening markdown braces."));
     };
     let Some(stop_idx) = text[start_idx + 3..].find("```") else {
+        debug!("Text:\n{}", text);
         return Err(anyhow!("Can't find closing markdown braces."));
     };
     let lang = match parse_md_lang(&text, start_idx) {

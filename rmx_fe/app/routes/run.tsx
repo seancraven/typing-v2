@@ -1,4 +1,6 @@
-export async function action({ request }) {
+import { ActionFunctionArgs } from "@remix-run/node";
+
+export async function action({ request }: ActionFunctionArgs) {
   console.log("Hit the loader");
   console.log(request);
   fetch(`${process.env.BE_URL}/json`, {

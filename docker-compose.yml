@@ -22,11 +22,13 @@ services:
       context: .
       dockerfile: ./Dockerfile
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      DATABASE_URL: sqlite:///mnt/database.db
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
       RUST_LOG: INFO
     ports:
       - 8080:8080
+    volumes:
+      - ./database.db:/mnt/database.db
   postgres:
     image: postgres:16-bullseye
     shm_size: 128m

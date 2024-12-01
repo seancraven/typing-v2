@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{collections::HashMap, io::Read, sync::Arc, time::Duration};
 use store::{LoginErr, DB};
-use text::text_for_typing;
+use text::{text_for_typing, text_generation};
 use uuid::Uuid;
 
 mod llm_client;
@@ -29,29 +29,41 @@ async fn main() {
     let db = DB::from_url(db_url).await;
     sqlx::migrate!().run(&db.pool).await.unwrap();
     let db = web::Data::new(db);
+    let db_text = db.clone();
     let client_tls_config = Arc::new(rustls_config());
-    actix_web::HttpServer::new(move || {
-        App::new()
-            .app_data(db.clone())
-            .app_data(web::Data::new(
-                Client::builder()
-                    .connector(Connector::new().rustls_0_23(client_tls_config.clone()))
-                    .timeout(Duration::from_secs(60))
-                    .finish(),
-            ))
-            .wrap(Logger::default())
-            .service(get_text)
-            .service(get_random_topic)
-            .service(login)
-            .service(register)
-            .service(check_health)
-            .service(data_handler)
-    })
-    .bind("0.0.0.0:8080")
-    .unwrap()
-    .run()
-    .await
+    let other_arc = client_tls_config.clone();
+    tokio::join!(
+        actix_web::HttpServer::new(move || {
+            App::new()
+                .app_data(db.clone())
+                .app_data(web::Data::new(
+                    Client::builder()
+                        .connector(Connector::new().rustls_0_23(client_tls_config.clone()))
+                        .timeout(Duration::from_secs(60))
+                        .finish(),
+                ))
+                .wrap(Logger::default())
+                .service(get_text)
+                .service(get_random_topic)
+                .service(login)
+                .service(register)
+                .service(check_health)
+                .service(data_handler)
+        })
+        .bind("0.0.0.0:8080")
+        .unwrap()
+        .run(),
+        breakable(db_text, other_arc)
+    )
+    .0
     .unwrap();
+}
+
+async fn breakable(db: web::Data<DB>, config: Arc<rustls::ClientConfig>) {
+    tokio::select!(
+    _ = text_generation(db, config) => (),
+    _ = tokio::signal::ctrl_c() => (),
+    );
 }
 
 #[get("/health/status")]
@@ -96,10 +108,10 @@ async fn get_text(db: web::Data<DB>, path_data: web::Path<(String, i32, usize)>)
 }
 #[post("/register")]
 async fn register(state: web::Data<DB>, data: Json<store::User>) -> impl Responder {
-    let id = match state.add_user(data.into_inner()).await {
+    let id = match state.add_user(&data.0).await {
         Ok(id) => id,
         Err(e) => {
-            error!("While regestering user {} occured.", e);
+            error!("While regestering user {} occured {}.", data.0.username, e);
             return HttpResponse::InternalServerError().finish();
         }
     };
@@ -158,7 +170,6 @@ async fn get_progress(
         .user_progress(user_id)
         .await
         .map_err(ErrorInternalServerError)?
-        .into_iter()
         .map(|row| TopicProgress {
             topic: row.2,
             topic_id: row.1,

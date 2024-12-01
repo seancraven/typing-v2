@@ -20,7 +20,7 @@ impl DB {
 }
 #[derive(Debug, Deserialize)]
 pub struct User {
-    username: String,
+    pub username: String,
     password: String,
     email: String,
 }
@@ -56,6 +56,21 @@ pub enum LoginErr {
 }
 
 impl DB {
+    pub async fn add_topic(&self, topic: &str, body: &str, lang: &str) -> Result<i64> {
+        let len = body.len() as i32;
+        sqlx::query_scalar!(
+            r#"INSERT INTO topics 
+            (topic, topic_text, text_len, lang)
+            VALUES ($1, $2, $3, $4) RETURNING id;"#,
+            topic,
+            body,
+            len,
+            lang,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .context("Adding topic failed due to:")
+    }
     pub async fn add_run(&self, run: UserData) -> Result<()> {
         let mut error_string = String::new();
         for (key, count) in run.error_chars {
@@ -70,7 +85,9 @@ impl DB {
         let topic_id = run.topic_id as i32;
 
         sqlx::query!(
-            r#"INSERT INTO user_runs (user_id, errors, finished, start_index, end_index, topic_id, wpm, type_time) VALUES ($1, $2, $3, $4, $5, $6, $7, $8 )"#,
+            r#"INSERT INTO user_runs 
+            (user_id, errors, finished, start_index, end_index, topic_id, wpm, type_time)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8 )"#,
             user_id,
             error_string,
             run.finished,
@@ -79,22 +96,30 @@ impl DB {
             topic_id,
             run.wpm,
             run.type_time_ms
-        ).execute(&self.pool).await.map(|_|()).context("")
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+        .context("")
     }
-    pub async fn add_user(&self, user: User) -> Result<uuid::Uuid> {
+    pub async fn add_user(&self, user: &User) -> Result<uuid::Uuid> {
         let new_id = Uuid::new_v4();
+        let new_id_str = new_id.to_string();
         let id = sqlx::query_scalar!(
-            r#"INSERT INTO users (id, username, user_password, email) VALUES ($1, $2, $3, $4) RETURNING id;"#,
-            new_id,
+            r#"INSERT INTO users (id, username, user_password, email)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id;"#,
+            new_id_str,
             user.username,
             user.password,
             user.email
         )
         .fetch_one(&self.pool)
-        .await.context("User add query failed due to:")?;
+        .await
+        .context("User add query failed due to:")?;
+        assert_eq!(new_id_str, id);
         let new_id_back =
             Uuid::parse_str(&id).context("Parsing UUID string returned from DB failed:")?;
-        assert_eq!(new_id_back, new_id);
         Ok(new_id_back)
     }
     pub async fn verify_user(&self, user: User) -> std::result::Result<uuid::Uuid, LoginErr> {
@@ -120,35 +145,14 @@ impl DB {
         sqlx::query!("INSERT INTO user_documents (body) VALUES ($1);", body)
             .execute(&self.pool)
             .await
-            .context("")
+            .context("Ingestion of user document failed.")
             .map(|_| ())
-    }
-    pub async fn ingest(&self, text_body: impl AsRef<str>, topic: String) -> Result<()> {
-        let text = text_body.as_ref();
-        let len = text.len() as i32;
-        sqlx::query!(
-            "INSERT INTO topics (topic_text, topic, text_len) VALUES ($1, $2, $3);",
-            text,
-            topic,
-            len
-        )
-        .execute(&self.pool)
-        .await
-        .context("")
-        .map(|_| ())
     }
     pub async fn text(&self, topic_id: i32) -> Result<String> {
         sqlx::query_scalar!(r#"SELECT topic_text FROM topics WHERE id = $1;"#, topic_id,)
             .fetch_one(&self.pool)
             .await
             .context("Get text failed due to:")
-    }
-    pub async fn random_text(&self) -> Result<(String, String)> {
-        sqlx::query!(r#"SELECT topic, topic_text FROM topics ORDER BY RANDOM() LIMIT 1;"#)
-            .fetch_one(&self.pool)
-            .await
-            .map(|b| (b.topic, b.topic_text))
-            .context("Random text query failed due to:")
     }
     pub async fn user_length_pref(&self, user_id: Uuid) -> Result<usize> {
         Ok(150)
@@ -160,8 +164,11 @@ impl DB {
             .map(|row| (row.id as i32, row.topic))
             .context("During random topic query database fetch failed.")
     }
-    pub async fn user_progress(&self, user_id: Uuid) -> Result<Vec<(f32, usize, String)>> {
-        let rows = sqlx::query!(
+    pub async fn user_progress(
+        &self,
+        user_id: Uuid,
+    ) -> Result<impl Iterator<Item = (f32, usize, String)>> {
+        Ok(sqlx::query!(
             r#"SELECT p.final_idx, p.topic_id, t.topic ,t.topic_text
             FROM user_progress as p INNER JOIN topics as t on p.topic_id = t.id
             WHERE user_id = $1;"#,
@@ -169,34 +176,47 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await
-        .context("User progress query failed due to:")?;
-        let mut out = Vec::with_capacity(rows.len());
-        for row in rows {
-            out.push((
+        .context("User progress query failed due to:")?
+        .into_iter()
+        .map(|row| {
+            (
                 row.final_idx as f32 / row.topic_text.len() as f32,
                 row.topic_id as usize,
                 row.topic,
-            ));
-        }
-        Ok(out)
+            )
+        }))
     }
-    pub async fn get_max_progress_by_topic(&self) -> Result<Vec<(f64, usize, String, uuid::Uuid)>> {
-        sqlx::query!(
-            r#"SELECT topic_id, CAST(final_idx as flaot) / CAST(text_len AS FLOAT) as result, topic, user_id
+    pub async fn topic_count(&self) -> Result<u64> {
+        sqlx::query_scalar!("SELECT COUNT(id) FROM topics;")
+            .fetch_one(&self.pool)
+            .await
+            .map(|i| i as u64)
+            .context("Failed to count topics.")
+    }
+    pub async fn max_progress_by_topic(
+        &self,
+    ) -> Result<impl Iterator<Item = (f64, usize, String, uuid::Uuid)>> {
+        Ok(sqlx::query!(
+            r#"SELECT 
+            topic_id,
+            final_idx,
+            text_len,
+            topic,
+            user_id
             FROM user_progress AS p INNER JOIN topics AS t on p.topic_id = t.id
             GROUP BY topic_id, final_idx, text_len, topic, user_id;"#
         )
         .fetch_all(&self.pool)
-        .await.context("Max progress by topic query failed due to:")?
+        .await
+        .context("Max progress by topic query failed due to:")?
         .into_iter()
         .map(|row| {
-            Ok((
-                row.result ,
+            (
+                row.final_idx as f64 / row.text_len.min(1) as f64,
                 row.topic_id as usize,
                 row.topic,
-                Uuid::parse_str(&row.user_id).context("Expect database to only have valid uuid.")?,
-            ))
-        })
-        .collect()
+                Uuid::parse_str(&row.user_id).expect("Expect database to only have valid uuid."),
+            )
+        }))
     }
 }

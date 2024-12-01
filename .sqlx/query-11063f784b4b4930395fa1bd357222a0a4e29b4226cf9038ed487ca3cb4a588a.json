@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(id) FROM topics;",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(id)",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "11063f784b4b4930395fa1bd357222a0a4e29b4226cf9038ed487ca3cb4a588a"
+}
