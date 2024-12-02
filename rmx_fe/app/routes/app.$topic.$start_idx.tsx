@@ -1,6 +1,4 @@
 import {
-  Await,
-  defer,
   useFetcher,
   useLoaderData,
   FetcherWithComponents,
@@ -13,7 +11,7 @@ import {
   redirect,
 } from "@remix-run/node";
 import { commitSession, getSession } from "~/sessions";
-import { Suspense, KeyboardEvent, useEffect, useState } from "react";
+import { KeyboardEvent, useEffect, useState } from "react";
 import Journey from "~/components/journey";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -27,13 +25,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       },
     });
   }
-  if (!params.topic || !params.item) {
+  if (!params.start_idx || !params.topic) {
     return redirect("/app/random");
   }
   if (params.topic) session.set("topic", params.topic);
-  if (params.item) session.set("item", params.item);
-  const endpoint = `${process.env.BE_URL}/${userId}/${params.topic}/${params.item}`;
-  const promise: {
+  if (params.start_idx) session.set("item", params.start_idx);
+  const endpoint = `${process.env.BE_URL}/${userId}/${params.topic}/${params.start_idx}`;
+  const textInfoProm: Promise<{
     text: string;
     start_index: number;
     end_index: number;
@@ -41,26 +39,48 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     done: boolean;
     topic: string;
     progress: number;
-  } = await fetch(endpoint).then((r) =>
+  }> = fetch(endpoint).then((r) =>
     r.status == 200 ? r.json() : { text: "text" },
   );
-  return { promise, userId };
+  const progInfoProm = fetch(`${process.env.BE_URL}/${userId}/progress`).then(
+    (r) => r.json(),
+  );
+  const [textInfo, progInfo] = await Promise.all([textInfoProm, progInfoProm]);
+  console.log(progInfo);
+  return { textInfo, userId, progInfo };
 }
 
-export async function action({ request }: ActionFunctionArgs) {
-  const json = await request.json();
-  fetch(`${process.env.BE_URL}/json`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(json),
-  });
+export async function action({ params, request }: ActionFunctionArgs) {
+  if (!params.start_idx) {
+    throw new Error("Can't fetch start_idx parameter from url.");
+  }
+  if (!params.topic) {
+    throw new Error("Can't fetch topic parameter from url.");
+  }
   return null;
 }
 export default function TypingTest() {
-  const { promise, userId } = useLoaderData<typeof loader>();
+  const { textInfo: typing_text_info, userId } = useLoaderData<typeof loader>();
   const nav = useNavigate();
   const fetcher = useFetcher<typeof action>();
-  const typingKey = `${promise.topic_id}:${promise.start_index}`;
+  const typingKey = `${typing_text_info.topic_id}:${typing_text_info.start_index}`;
+  const returnHandler = () => {
+    fetcher.submit({}, {});
+    const user_data: UserData = {
+      user_id: userId,
+      start_idx: typing_text_info.start_index,
+      end_idx: typing_text_info.end_index,
+      error_chars: [],
+      finished: true,
+      type_time_ms:
+        typingState.keypressHistory.at(-1)[1] -
+        typingState.keypressHistory[0][1],
+    };
+    fetcher.submit(user_data, {
+      method: "POST",
+      encType: "application/json",
+    });
+  };
 
   return (
     <div className={"relative h-full w-full justify-center"}>
@@ -70,8 +90,8 @@ export default function TypingTest() {
             <Journey
               nameProgress={[
                 {
-                  topic: promise.topic,
-                  progress: promise.progress * 100,
+                  topic: typing_text_info.topic,
+                  progress: typing_text_info.progress * 100,
                 },
               ]}
             />
@@ -79,16 +99,19 @@ export default function TypingTest() {
           <div className="col-span-1 flex">
             <Typing
               key={typingKey}
-              text={promise.text}
+              text={typing_text_info.text}
               fetcher={fetcher}
               loggedIn={Boolean(userId)}
               nextHandler={() => {
-                if (promise.done) {
+                if (typing_text_info.done) {
                   nav(`/app/random`, { replace: true });
                 }
-                nav(`/app/${promise.topic_id}/${promise.end_index}`, {
-                  replace: true,
-                });
+                nav(
+                  `/app/${typing_text_info.topic_id}/${typing_text_info.end_index}`,
+                  {
+                    replace: true,
+                  },
+                );
               }}
             />
           </div>
@@ -103,6 +126,15 @@ type TypingSpanState = {
   position: number;
   error: string[];
   keypressHistory: [string, number][];
+};
+
+type UserData = {
+  user_id: string;
+  start_idx: number;
+  end_idx: number;
+  error_chars: [string, number][];
+  finished: boolean;
+  type_time_ms: number;
 };
 export function Typing(props: {
   text: string;
@@ -166,7 +198,6 @@ export function Typing(props: {
         throw new Error("");
       }
       clearInterval(timerCallbackState);
-      fetcher.submit({}, { method: "POST", encType: "application/json" });
       setComplete(true);
       setEnabled(false);
     }

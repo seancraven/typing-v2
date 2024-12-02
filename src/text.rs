@@ -39,6 +39,7 @@ pub struct TypingState {
     end_index: usize,
     text: String,
     topic_id: usize,
+    topic: String,
     progress: f32,
     done: bool,
 }
@@ -51,21 +52,30 @@ pub async fn text_for_typing(
 ) -> Result<TypingState> {
     let text_fut = db.text(topic_id);
     let len_fut = db.user_length_pref(user_id);
+
     let (text, len) = join!(text_fut, len_fut);
+
     let len = len.unwrap_or_else(|e| {
         error!("Failed to get user length preference due to {}.", e);
         150
     });
-    let text = text.context("Failed fetching text from database.")?;
+
+    let (mut topic, text) = text.context("Failed fetching text from database.")?;
+
+    let end = topic.find('.').unwrap_or(topic.len());
+    topic.drain(end..);
+
     let text_length = text.len() as f32;
     let (text, start_index, end_index) =
         get_next_chonk(text, len, start_index).ok_or(anyhow!("Invalid item"))?;
     let progress = (end_index as f32 / text_length).clamp(0.0, 1.0);
     let done = progress >= 1.0;
+
     Ok(TypingState {
         start_index,
         end_index,
         topic_id: topic_id as usize,
+        topic,
         text,
         progress,
         done,
@@ -90,26 +100,6 @@ fn get_next_chonk(
         .unwrap_or(0);
     text.drain(len + offset..);
     Some((text, start_idx, start_idx + len + offset))
-}
-fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> {
-    let mut chunks = vec![];
-    let mut chunk_start: usize = 0;
-    for (i, char) in text.chars().enumerate() {
-        if i - chunk_start <= len {
-            continue;
-        }
-        if char == '\n' || char == '\t' || char == ' ' {
-            chunks.push((chunk_start, i));
-            chunk_start = i
-        }
-    }
-    let olen = text.len() as f32;
-    chunks.push((chunk_start, text.len()));
-    let item = chunks.get(idx)?;
-    text.drain(item.1..);
-    text.drain(..item.0);
-    let prog = item.1 as f32 / olen;
-    Some((text, prog.clamp(0.0, 1.0)))
 }
 pub async fn loop_body(db: &DB, client: &awc::Client) -> Result<()> {
     let progress = db.max_progress_by_topic().await?;
@@ -250,29 +240,6 @@ fn parse_md_lang(text: &str, start_idx: usize) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn test_text() {
-        let s = include_str!("system_prompt.txt");
-        let clip_len = 150;
-        let mut outs = vec![];
-        let mut i = 0;
-        loop {
-            let text = String::from(s);
-            let Some(t) = trim_text(text, clip_len, i) else {
-                break;
-            };
-            outs.push(t);
-            i += 1;
-        }
-        assert!(outs.len() > 1);
-        for out in &outs[..outs.len() - 1] {
-            assert!(out.0.len() >= clip_len, "{}:{}", out.0.len(), clip_len);
-        }
-        assert_eq!(
-            outs.iter().map(|i| &*i.0).collect::<Vec<&str>>().join(""),
-            s,
-        );
-    }
 
     #[test]
     fn test_parse_md() {

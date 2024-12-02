@@ -148,11 +148,15 @@ impl DB {
             .context("Ingestion of user document failed.")
             .map(|_| ())
     }
-    pub async fn text(&self, topic_id: i32) -> Result<String> {
-        sqlx::query_scalar!(r#"SELECT topic_text FROM topics WHERE id = $1;"#, topic_id,)
-            .fetch_one(&self.pool)
-            .await
-            .context("Get text failed due to:")
+    pub async fn text(&self, topic_id: i32) -> Result<(String, String)> {
+        sqlx::query!(
+            r#"SELECT topic, topic_text FROM topics WHERE id = $1;"#,
+            topic_id,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map(|row| (row.topic, row.topic_text))
+        .context("Get text failed due to:")
     }
     pub async fn user_length_pref(&self, user_id: Uuid) -> Result<usize> {
         Ok(150)

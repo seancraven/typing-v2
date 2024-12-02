@@ -45,6 +45,7 @@ async fn main() {
                 .wrap(Logger::default())
                 .service(get_text)
                 .service(get_random_topic)
+                .service(get_progress)
                 .service(login)
                 .service(register)
                 .service(check_health)

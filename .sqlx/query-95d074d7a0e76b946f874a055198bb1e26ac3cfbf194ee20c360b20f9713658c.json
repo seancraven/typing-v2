@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT topic, topic_text FROM topics WHERE id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "name": "topic",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "topic_text",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "95d074d7a0e76b946f874a055198bb1e26ac3cfbf194ee20c360b20f9713658c"
+}
