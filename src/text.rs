@@ -112,7 +112,9 @@ fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> 
     Some((text, prog.clamp(0.0, 1.0)))
 }
 pub async fn loop_body(db: &DB, client: &awc::Client) -> Result<()> {
-    let progress = db.max_progress_by_topic().await?;
+    let progress = db.max_progress_by_topic().await?.inspect(|i| {
+        dbg!(i);
+    });
     let (sum, len): (f64, f64) = progress
         .into_iter()
         .fold((0.0, 0.0), |acc, row| (row.0 + acc.0, acc.1 + 1.0));

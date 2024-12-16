@@ -1,11 +1,10 @@
 import {
-  Await,
-  defer,
   useFetcher,
   useLoaderData,
   FetcherWithComponents,
   useParams,
   useNavigate,
+  Outlet,
 } from "@remix-run/react";
 import {
   ActionFunctionArgs,
@@ -13,8 +12,10 @@ import {
   redirect,
 } from "@remix-run/node";
 import { commitSession, getSession } from "~/sessions";
-import { Suspense, KeyboardEvent, useEffect, useState } from "react";
+import { KeyboardEvent, useEffect, useState } from "react";
 import Journey from "~/components/journey";
+
+const LINE_WIDTH = 60;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
@@ -49,52 +50,66 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   const json = await request.json();
-  fetch(`${process.env.BE_URL}/json`, {
+  const resp = await fetch(`${process.env.BE_URL}/user/data`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(json),
   });
+  console.log(resp);
   return null;
 }
+type UserData = {
+  user_id: string;
+  error_chars: [string, number][];
+  topic_id: number;
+  end_idx: number;
+  start_idx: number;
+  wpm: number;
+  finished: boolean;
+  type_time_ms: number;
+};
 export default function TypingTest() {
   const { promise, userId } = useLoaderData<typeof loader>();
   const nav = useNavigate();
   const fetcher = useFetcher<typeof action>();
   const typingKey = `${promise.topic_id}:${promise.start_index}`;
+  const postResults = (timeMiliSec: number, errors: string[]) => {
+    const errorMap: Map<string, number> = new Map();
+    for (let i = 0; i < errors.length; i++) {
+      if (errors[i] == "") continue;
+      errorMap.set(errors[i], (errorMap.get(errors[i]) ?? 0) + 1);
+    }
+    const s = timeMiliSec / 1000;
+    const charPerSec = (promise.end_index - promise.start_index) / s;
+    const wpm = charPerSec / (60 * 5);
+    const typingData: UserData = {
+      user_id: userId,
+      end_idx: promise.end_index,
+      type_time_ms: timeMiliSec,
+      error_chars: Array.from(errorMap.entries()),
+      topic_id: promise.topic_id,
+      start_idx: promise.start_index,
+      wpm: wpm,
+      finished: promise.done,
+    };
+    fetcher.submit(typingData, { method: "POST", encType: "application/json" });
+  };
 
   return (
-    <div className={"relative h-full w-full justify-center"}>
-      <div className="mx-auto h-full w-full items-center text-3xl">
-        <div className="w-min-[800px] w-max-[1600px] mx-auto grid h-[200px] w-2/3 grid-cols-1 items-center">
-          <div className="col-span-1 mx-auto w-[800px]">
-            <Journey
-              nameProgress={[
-                {
-                  topic: promise.topic,
-                  progress: promise.progress * 100,
-                },
-              ]}
-            />
-          </div>
-          <div className="col-span-1 flex">
-            <Typing
-              key={typingKey}
-              text={promise.text}
-              fetcher={fetcher}
-              loggedIn={Boolean(userId)}
-              nextHandler={() => {
-                if (promise.done) {
-                  nav(`/app/random`, { replace: true });
-                }
-                nav(`/app/${promise.topic_id}/${promise.end_index}`, {
-                  replace: true,
-                });
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    <Typing
+      key={typingKey}
+      text={promise.text}
+      postDataHandler={postResults}
+      loggedIn={Boolean(userId)}
+      nextHandler={() => {
+        if (promise.done) {
+          nav(`/app/progress/random`, { replace: true });
+        }
+        nav(`/app/progress/${promise.topic_id}/${promise.end_index}`, {
+          replace: true,
+        });
+      }}
+    />
   );
 }
 
@@ -106,12 +121,12 @@ type TypingSpanState = {
 };
 export function Typing(props: {
   text: string;
-  fetcher: FetcherWithComponents<null>;
+  postDataHandler: (arg0: number, arg1: string[]) => void;
   loggedIn: boolean;
   nextHandler: () => void;
 }) {
   const text = props.text;
-  const fetcher = props.fetcher;
+  const postDataHandler = props.postDataHandler;
   const errors: string[] = new Array(text.length).fill("");
   const spanned = new Array(text.length);
   let lastNl = 0;
@@ -166,7 +181,11 @@ export function Typing(props: {
         throw new Error("");
       }
       clearInterval(timerCallbackState);
-      fetcher.submit({}, { method: "POST", encType: "application/json" });
+      postDataHandler(
+        typingState.keypressHistory[0][1] -
+          typingState.keypressHistory.at(-1)[1],
+        errors,
+      );
       setComplete(true);
       setEnabled(false);
     }
@@ -178,7 +197,7 @@ export function Typing(props: {
   );
 
   return (
-    <div className="relative w-full">
+    <div className="relative h-full w-full">
       {enabled ? null : (
         <div className="absolute left-1/2 top-1/2 z-10 h-full w-screen -translate-x-1/2 -translate-y-1/2">
           <div className="h-[130%] w-full backdrop-blur-lg backdrop-filter">
@@ -257,7 +276,6 @@ function useKeypressListener(
   }, triggers);
 }
 
-/* Need to implement a function to update the spans based on each keypress. */
 function handleKeypress(
   event: KeyboardEvent,
   text: string,
@@ -364,7 +382,6 @@ function Pause({ handleResume }: { handleResume: () => void }) {
             <title>Resume</title>
             <path
               d="M35 25 L35 75 L75 50 Z"
-              // className="fill-primary-500 stroke-primary-500"
               strokeLinejoin="round"
               strokeWidth="8"
             />
@@ -419,7 +436,7 @@ function Restart({
       </div>
       <div>
         <button
-          className="flex items-center rounded-xl stroke-primary-500 font-bold text-gray-600 hover:bg-primary-600 hover:fill-primary-600 hover:stroke-black hover:text-black"
+          className="flex items-center rounded-xl fill-transparent stroke-primary-500 font-bold text-gray-600 hover:bg-primary-600 hover:fill-primary-600 hover:stroke-black hover:text-black"
           onClick={handleNext}
           onKeyDown={(e) => {
             if (e.key == "Enter") {
@@ -457,7 +474,7 @@ function updateSpecialSpan(
   let [n_char, no_mut] = specialCharChar(text[i]);
   if (text[i] == "\n") {
     lastNewline = i;
-  } else if (i - lastNewline >= 79 && isWhitespace(text[i])) {
+  } else if (i - lastNewline >= LINE_WIDTH && isWhitespace(text[i])) {
     n_char += "\n";
     lastNewline = i;
   }
@@ -505,11 +522,11 @@ export function CatchBoundary() {
 }
 
 // No colour
-const no_col = "text-gray-200";
-const no_col_mut = "text-gray-800";
+const no_col = "dark:text-gray-200 text-gray-800";
+const no_col_mut = "dark:text-gray-800 text-gray-200";
 // Right color
-const right_col = "text-gray-400";
-const right_col_mut = "text-gray-800";
+const right_col = "dark:text-gray-400 text-gray-600";
+const right_col_mut = "dark:text-gray-800 text-gray-200";
 // Wrong color
 const wrong_col = "bg-red-800 text-gray-200 rounded";
 const wrong_col_mut = "bg-red-800 text-gray-500 rounded";

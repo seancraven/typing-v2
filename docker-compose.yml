@@ -28,15 +28,4 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./database.db:/mnt/database.db
-  postgres:
-    image: postgres:16-bullseye
-    shm_size: 128m
-    volumes:
-      - /mnt/database:/var/lib/postgresql/data
-    environment:
-      PGDATA: /var/lib/postgresql/data/pgdata
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - 5433:5432
+      - ./:/mnt/

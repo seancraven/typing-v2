@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use log::error;
 use serde::Deserialize;
 use sqlx::SqlitePool;
 use uuid::Uuid;
@@ -82,7 +83,9 @@ impl DB {
             .parse::<Uuid>()
             .context("Invalid user id")?
             .to_string();
-        let topic_id = run.topic_id as i32;
+        let topic_id = run.topic_id as u32;
+        let start_idx = run.start_idx as u32;
+        let end_idx = run.end_idx as u32;
 
         sqlx::query!(
             r#"INSERT INTO user_runs 
@@ -91,8 +94,8 @@ impl DB {
             user_id,
             error_string,
             run.finished,
-            0 as i32,
-            150 as i32,
+            start_idx,
+            end_idx,
             topic_id,
             run.wpm,
             run.type_time_ms
@@ -100,7 +103,19 @@ impl DB {
         .execute(&self.pool)
         .await
         .map(|_| ())
-        .context("")
+        .context("Error during inserting user run.")?;
+
+        sqlx::query!(
+            r#"INSERT INTO user_progress (user_id, final_idx, topic_id) VALUES ($1, $2, $3);"#,
+            user_id,
+            end_idx,
+            topic_id
+        )
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+        .context("Error during inserting user progress")?;
+        Ok(())
     }
     pub async fn add_user(&self, user: &User) -> Result<uuid::Uuid> {
         let new_id = Uuid::new_v4();
@@ -167,22 +182,25 @@ impl DB {
     pub async fn user_progress(
         &self,
         user_id: Uuid,
-    ) -> Result<impl Iterator<Item = (f32, usize, String)>> {
+    ) -> Result<impl Iterator<Item = (f32, usize, usize, String)>> {
+        let str_id = user_id.to_string();
         Ok(sqlx::query!(
-            r#"SELECT p.final_idx, p.topic_id, t.topic ,t.topic_text
+            r#"SELECT MAX(p.final_idx) as final_idx, p.topic_id, t.lang, t.text_len
             FROM user_progress as p INNER JOIN topics as t on p.topic_id = t.id
-            WHERE user_id = $1;"#,
-            user_id
+            WHERE p.user_id = $1 GROUP BY p.topic_id, t.lang, t.text_len;"#,
+            str_id
         )
         .fetch_all(&self.pool)
         .await
         .context("User progress query failed due to:")?
         .into_iter()
+        .filter_map(|row| Some((row.final_idx, row.text_len?, row.topic_id?, row.lang?)))
         .map(|row| {
             (
-                row.final_idx as f32 / row.topic_text.len() as f32,
-                row.topic_id as usize,
-                row.topic,
+                row.0 as f32 / row.1 as f32,
+                row.0 as usize,
+                row.2 as usize,
+                row.3,
             )
         }))
     }
@@ -212,11 +230,75 @@ impl DB {
         .into_iter()
         .map(|row| {
             (
-                row.final_idx as f64 / row.text_len.min(1) as f64,
+                row.final_idx as f64 / row.text_len.max(1) as f64,
                 row.topic_id as usize,
                 row.topic,
                 Uuid::parse_str(&row.user_id).expect("Expect database to only have valid uuid."),
             )
         }))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::time::Duration;
+
+    use crate::UserData;
+
+    use super::*;
+
+    async fn make_mock_db() -> (DB, impl Fn()) {
+        let f = "database.db";
+        let dest = format!("test-{}.db", Uuid::new_v4().to_string());
+        let cloned_dest = dest.clone();
+        std::fs::copy(f, &dest).unwrap();
+        let close = move || {
+            std::fs::remove_file(&cloned_dest).unwrap();
+            std::fs::remove_file(format!("{}-shm", &cloned_dest)).unwrap();
+            std::fs::remove_file(format!("{}-wal", &cloned_dest)).unwrap();
+        };
+        (DB::from_url(format!("sqlite://{}", dest)).await, close)
+    }
+
+    #[tokio::test]
+    async fn test_add_run() {
+        env_logger::init();
+        let (db, close) = make_mock_db().await;
+        let (topic_id, _) = db.random_topic().await.unwrap();
+        let dummy_user = User {
+            username: "test".into(),
+            password: "test".into(),
+            email: "test".into(),
+        };
+        let user = db.add_user(&dummy_user).await.unwrap();
+        let run = UserData {
+            user_id: user.to_string(),
+            end_idx: 150,
+            start_idx: 0,
+            topic_id: topic_id as usize,
+            error_chars: vec![],
+            wpm: 100.0,
+            finished: false,
+            type_time_ms: 10000.0,
+        };
+        db.add_run(run).await.unwrap();
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        let prog = db.user_progress(user).await.unwrap().collect::<Vec<_>>();
+        close();
+        assert!(prog.len() == 1);
+    }
+    #[tokio::test]
+    async fn test_max_prog() {
+        let (db, close) = make_mock_db().await;
+        let progs = db
+            .max_progress_by_topic()
+            .await
+            .unwrap()
+            .collect::<Vec<_>>();
+        for (prog, _, _, _) in progs {
+            assert!(prog <= 1.0);
+            assert!(prog >= 0.0);
+        }
+        close();
     }
 }
