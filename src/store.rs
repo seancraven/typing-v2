@@ -11,9 +11,9 @@ pub struct DB {
     pub pool: SqlitePool,
 }
 impl DB {
-    pub async fn from_url(url: String) -> DB {
+    pub async fn from_url(url: impl AsRef<str>) -> DB {
         DB {
-            pool: sqlx::SqlitePool::connect(&url)
+            pool: sqlx::SqlitePool::connect(url.as_ref())
                 .await
                 .expect("can't connect to db"),
         }
@@ -57,16 +57,17 @@ pub enum LoginErr {
 }
 
 impl DB {
-    pub async fn add_topic(&self, topic: &str, body: &str, lang: &str) -> Result<i64> {
+    pub async fn add_topic(&self, topic: &str, body: &str, lang: &str, title: &str) -> Result<i64> {
         let len = body.len() as i32;
         sqlx::query_scalar!(
             r#"INSERT INTO topics 
-            (topic, topic_text, text_len, lang)
-            VALUES ($1, $2, $3, $4) RETURNING id;"#,
+            (topic, topic_text, text_len, lang, title)
+            VALUES ($1, $2, $3, $4, $5) RETURNING id;"#,
             topic,
             body,
             len,
             lang,
+            title,
         )
         .fetch_one(&self.pool)
         .await
@@ -241,9 +242,12 @@ impl DB {
 
 #[cfg(test)]
 mod test {
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
 
-    use crate::UserData;
+    use awc::{Client, Connector};
+    use sqlx::query;
+
+    use crate::{rustls_config, text::create_topic_title, UserData};
 
     use super::*;
 
@@ -300,5 +304,35 @@ mod test {
             assert!(prog >= 0.0);
         }
         close();
+    }
+
+    #[actix_web::test]
+    async fn test_add_topics() {
+        let client_tls_config = Arc::new(rustls_config());
+        let client = Client::builder()
+            .connector(Connector::new().rustls_0_23(client_tls_config.clone()))
+            .finish();
+        let db = DB::from_url("sqlite://database.db").await;
+        let query = sqlx::query!(r#"SELECT id, topic_text FROM topics;"#)
+            .fetch_all(&db.pool)
+            .await
+            .unwrap();
+        for row in query {
+            let mut title = create_topic_title(&row.topic_text, &client).await.unwrap();
+            let mut i = 0;
+            while title.contains(".") {
+                println!("Title {}:{title}", row.id);
+                title = create_topic_title(&row.topic_text, &client).await.unwrap();
+                if i == 3 {
+                    break;
+                }
+                i += 1;
+            }
+            println!("Title {}:{title}", row.id);
+            sqlx::query!("UPDATE topics SET title = $1 where id  = $2", title, row.id)
+                .execute(&db.pool)
+                .await
+                .unwrap();
+        }
     }
 }

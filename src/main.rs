@@ -242,9 +242,7 @@ mod tests {
         env_logger::init();
         let svc = actix_web::test::init_service(
             App::new()
-                .app_data(web::Data::new(
-                    DB::from_url("sqlite://database.db".into()).await,
-                ))
+                .app_data(web::Data::new(DB::from_url("sqlite://database.db").await))
                 .service(get_text),
         )
         .await;
