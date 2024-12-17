@@ -11,7 +11,7 @@ use awc::{Client, Connector};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{collections::HashMap, io::Read, sync::Arc, time::Duration};
+use std::{io::Read, sync::Arc, time::Duration};
 use store::{LoginErr, DB};
 use text::{text_for_typing, text_generation};
 use uuid::Uuid;
@@ -45,6 +45,7 @@ async fn main() {
                 .wrap(Logger::default())
                 .service(get_text)
                 .service(get_random_topic)
+                .service(get_progress)
                 .service(login)
                 .service(register)
                 .service(check_health)
@@ -137,11 +138,12 @@ async fn login(state: web::Data<DB>, data: Json<store::User>) -> impl Responder 
 #[derive(Deserialize, Debug)]
 pub struct UserData {
     user_id: String,
-    error_chars: HashMap<String, usize>,
-    finished: bool,
+    error_chars: Vec<(String, usize)>,
     topic_id: usize,
-    item_id: usize,
+    end_idx: usize,
+    start_idx: usize,
     wpm: f64,
+    finished: bool,
     type_time_ms: f64,
 }
 #[post("/user/data")]
@@ -156,9 +158,10 @@ async fn data_handler(state: web::Data<DB>, data: Json<UserData>) -> Result<impl
 }
 #[derive(Debug, Serialize)]
 struct TopicProgress {
-    topic: String,
     topic_id: usize,
     progress: f32,
+    final_idx: usize,
+    lang: String,
 }
 #[get("/{user_id}/progress")]
 async fn get_progress(
@@ -171,9 +174,10 @@ async fn get_progress(
         .await
         .map_err(ErrorInternalServerError)?
         .map(|row| TopicProgress {
-            topic: row.2,
             topic_id: row.1,
             progress: row.0,
+            final_idx: row.2,
+            lang: row.3,
         })
         .collect::<Vec<TopicProgress>>();
 
@@ -238,9 +242,7 @@ mod tests {
         env_logger::init();
         let svc = actix_web::test::init_service(
             App::new()
-                .app_data(web::Data::new(
-                    DB::from_url(std::env::var("DATABASE_URL").unwrap()).await,
-                ))
+                .app_data(web::Data::new(DB::from_url("sqlite://database.db").await))
                 .service(get_text),
         )
         .await;

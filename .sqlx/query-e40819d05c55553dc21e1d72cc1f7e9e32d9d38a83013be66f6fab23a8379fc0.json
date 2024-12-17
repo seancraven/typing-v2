@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO user_progress (user_id, final_idx, topic_id) VALUES ($1, $2, $3);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e40819d05c55553dc21e1d72cc1f7e9e32d9d38a83013be66f6fab23a8379fc0"
+}

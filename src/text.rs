@@ -112,7 +112,9 @@ fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> 
     Some((text, prog.clamp(0.0, 1.0)))
 }
 pub async fn loop_body(db: &DB, client: &awc::Client) -> Result<()> {
-    let progress = db.max_progress_by_topic().await?;
+    let progress = db.max_progress_by_topic().await?.inspect(|i| {
+        dbg!(i);
+    });
     let (sum, len): (f64, f64) = progress
         .into_iter()
         .fold((0.0, 0.0), |acc, row| (row.0 + acc.0, acc.1 + 1.0));
@@ -124,13 +126,15 @@ pub async fn loop_body(db: &DB, client: &awc::Client) -> Result<()> {
         for _ in 0..NEW_TOPIC_COUNT {
             let topic = create_topic_type(client).await?;
             let code_block = create_topic_epic(&topic, client).await?;
+            let title = create_topic_title(&code_block.text, client).await?;
             let id = code_block
-                .to_database(&topic, db)
+                .to_database(&topic, &title, db)
                 .await
                 .context("Insertion of generatied code block failed.")?;
             info!(
-                "Generated topic {}:{} len {}",
+                "Generated topic {}:{}:{} len {}",
                 id,
+                title,
                 code_block.lang,
                 code_block.text.len()
             )
@@ -168,6 +172,12 @@ async fn create_topic_type(client: &awc::Client) -> Result<String> {
     )
     .await
 }
+pub async fn create_topic_title(body: impl AsRef<str>, client: &awc::Client) -> Result<String> {
+    let body = body.as_ref();
+    let message = "You will be given a description of a small program and the resulting program. Could you please generate a short title for the program. Only a single short title is allowed.";
+    let prompt = format!("Please create a title for this program, avoid using the language name, and try keep the title tirse and informative. Here is the code:\n\n {}. Remember you must only respond with a single short title.", body);
+    llm_client::single_question(message, prompt, client).await
+}
 async fn create_topic_epic(topic: &str, client: &awc::Client) -> Result<CodeBlock> {
     let user_message = format!("Please help me write a correct program about {}", topic);
     for _ in 0..MAX_GENERATION_RETRY {
@@ -200,8 +210,8 @@ struct CodeBlock {
     text: String,
 }
 impl CodeBlock {
-    async fn to_database(&self, topic: &str, db: &DB) -> Result<i64> {
-        db.add_topic(topic, &self.text, &self.lang).await
+    async fn to_database(&self, topic: &str, title: &str, db: &DB) -> Result<i64> {
+        db.add_topic(topic, &self.text, &self.lang, title).await
     }
 }
 
