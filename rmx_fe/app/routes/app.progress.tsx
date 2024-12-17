@@ -27,7 +27,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const endpoint = `${process.env.BE_URL}/${userId}/progress`;
   const resp = await fetch(endpoint);
   if (resp.status != 200) {
-    throw new Error("Whelp seomthing went wrong.");
+    throw new Error("Whelp seomthing went wrong: " + resp.body);
   }
   const json = resp.json();
   return json;

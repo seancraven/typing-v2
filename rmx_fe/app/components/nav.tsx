@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@remix-run/react";
+import { Link } from "@remix-run/react";
 import { useState } from "react";
 export function NavBar() {
   return (
@@ -48,7 +48,6 @@ function UserButton() {
   );
 }
 function NavDropDown(props: { setIsVisible: (arg0: boolean) => void }) {
-  const nav = useNavigate();
   return (
     <div
       className="absolute right-2 top-full list-none divide-y divide-gray-100 rounded-lg bg-white text-base shadow dark:divide-gray-600 dark:bg-gray-700"
@@ -66,26 +65,18 @@ function NavDropDown(props: { setIsVisible: (arg0: boolean) => void }) {
       <ul className="py-2" aria-labelledby="user-menu-button">
         <li>
           <Link
-            to="/dashboard"
+            to="/app/stats"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white"
           >
-            Dashboard
+            Typing Stats
           </Link>
         </li>
         <li>
           <Link
-            to="/settings"
+            to="/app/settings"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white"
           >
             Settings
-          </Link>
-        </li>
-        <li>
-          <Link
-            to="/earnings"
-            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white"
-          >
-            Earnings
           </Link>
         </li>
         <li>

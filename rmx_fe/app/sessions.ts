@@ -1,4 +1,9 @@
-import { createCookieSessionStorage } from "@remix-run/node"; // or cloudflare/deno
+import {
+  createCookieSessionStorage,
+  redirect,
+  Session,
+  SessionStorage,
+} from "@remix-run/node"; // or cloudflare/deno
 
 export type SessionData = {
   userId: string;
@@ -21,3 +26,14 @@ const { getSession, commitSession, destroySession } =
   });
 
 export { getSession, commitSession, destroySession };
+
+// Handle unlogged in fuckers, by routing to login page.
+export function getUserIdChecked(
+  session: Session<SessionData, SessionFlashData>,
+) {
+  const userId = session.get("userId");
+  if (!userId) {
+    throw redirect("/app/login");
+  }
+  return userId;
+}
