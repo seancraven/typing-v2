@@ -9,7 +9,7 @@ use serde::Serialize;
 use tokio::join;
 use uuid::Uuid;
 
-use crate::{llm_client, rustls_config, store::DB};
+use crate::{llm_client, store::DB};
 
 const P_GEN: f64 = 0.99;
 const SYSTEM_PROMPT: &str = include_str!("system_prompt.txt");
@@ -57,11 +57,12 @@ pub async fn text_for_typing(
         150
     });
     let text = text.context("Failed fetching text from database.")?;
+    let olen = text.len();
     let text_length = text.len() as f32;
     let (text, start_index, end_index) =
         get_next_chonk(text, len, start_index).ok_or(anyhow!("Invalid item"))?;
+    let done = end_index >= olen;
     let progress = (end_index as f32 / text_length).clamp(0.0, 1.0);
-    let done = progress >= 1.0;
     Ok(TypingState {
         start_index,
         end_index,
@@ -79,13 +80,13 @@ fn get_next_chonk(
     if start_idx >= text.len() {
         return None;
     };
+    let olen = text.len();
     text.drain(..start_idx);
-    if len > text.len() {
-        let tlen = text.len();
-        return Some((text, start_idx, tlen));
+    if len > olen {
+        return Some((text, start_idx, olen));
     }
     let offset = text[len..]
-        .find(['\n', '\t', ' '])
+        .find(['\n'])
         // If garbage with no space just truncate.
         .unwrap_or(0);
     text.drain(len + offset..);
@@ -112,9 +113,7 @@ fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> 
     Some((text, prog.clamp(0.0, 1.0)))
 }
 pub async fn loop_body(db: &DB, client: &awc::Client) -> Result<()> {
-    let progress = db.max_progress_by_topic().await?.inspect(|i| {
-        dbg!(i);
-    });
+    let progress = db.max_progress_by_topic().await?;
     let (sum, len): (f64, f64) = progress
         .into_iter()
         .fold((0.0, 0.0), |acc, row| (row.0 + acc.0, acc.1 + 1.0));

@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Outlet, redirect, useParams } from "@remix-run/react";
-import { getSession } from "~/sessions";
+import { getSession, getUserIdChecked } from "~/sessions";
 
 export const meta: MetaFunction = () => {
   return [
@@ -11,9 +11,8 @@ export const meta: MetaFunction = () => {
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
-  if (session.has("userId")) {
-    return redirect("/app/");
-  }
+  getUserIdChecked(session);
+
   return redirect("/app/login");
 }
 export default function Index() {

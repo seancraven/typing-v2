@@ -183,25 +183,34 @@ impl DB {
     pub async fn user_progress(
         &self,
         user_id: Uuid,
-    ) -> Result<impl Iterator<Item = (f32, usize, usize, String)>> {
+    ) -> Result<impl Iterator<Item = (f32, usize, usize, String, String)>> {
         let str_id = user_id.to_string();
         Ok(sqlx::query!(
-            r#"SELECT MAX(p.final_idx) as final_idx, p.topic_id, t.lang, t.text_len
+            r#"SELECT MAX(p.final_idx) as final_idx, p.topic_id, t.lang, t.text_len, t.title
             FROM user_progress as p INNER JOIN topics as t on p.topic_id = t.id
-            WHERE p.user_id = $1 GROUP BY p.topic_id, t.lang, t.text_len;"#,
+            WHERE p.user_id = $1 GROUP BY p.topic_id;"#,
             str_id
         )
         .fetch_all(&self.pool)
         .await
         .context("User progress query failed due to:")?
         .into_iter()
-        .filter_map(|row| Some((row.final_idx, row.text_len?, row.topic_id?, row.lang?)))
+        .filter_map(|row| {
+            Some((
+                row.final_idx,
+                row.text_len?,
+                row.topic_id?,
+                row.lang?,
+                row.title?,
+            ))
+        })
         .map(|row| {
             (
                 row.0 as f32 / row.1 as f32,
-                row.0 as usize,
                 row.2 as usize,
+                row.0 as usize,
                 row.3,
+                row.4,
             )
         }))
     }

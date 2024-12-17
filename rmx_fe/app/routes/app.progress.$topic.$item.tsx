@@ -12,7 +12,7 @@ import {
   redirect,
 } from "@remix-run/node";
 import { getSession, getUserIdChecked } from "~/sessions";
-import { KeyboardEvent, useEffect, useState } from "react";
+import { KeyboardEvent, useEffect, useRef, useState } from "react";
 
 const LINE_WIDTH = 60;
 
@@ -25,7 +25,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   if (params.topic) session.set("topic", params.topic);
   if (params.item) session.set("item", params.item);
   const endpoint = `${process.env.BE_URL}/${userId}/${params.topic}/${params.item}`;
-  const promise: {
+  const typingTest: {
     text: string;
     start_index: number;
     end_index: number;
@@ -36,7 +36,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   } = await fetch(endpoint).then((r) =>
     r.status == 200 ? r.json() : { text: "text" },
   );
-  return { promise, userId };
+  return { typingTest, userId };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -60,10 +60,10 @@ type UserData = {
   type_time_ms: number;
 };
 export default function TypingTest() {
-  const { promise, userId } = useLoaderData<typeof loader>();
+  const { typingTest, userId } = useLoaderData<typeof loader>();
   const nav = useNavigate();
   const fetcher = useFetcher<typeof action>();
-  const typingKey = `${promise.topic_id}:${promise.start_index}`;
+  const typingKey = `${typingTest.topic_id}:${typingTest.start_index}`;
   const postResults = (timeMiliSec: number, errors: string[]) => {
     const errorMap: Map<string, number> = new Map();
     for (let i = 0; i < errors.length; i++) {
@@ -71,17 +71,17 @@ export default function TypingTest() {
       errorMap.set(errors[i], (errorMap.get(errors[i]) ?? 0) + 1);
     }
     const s = timeMiliSec / 1000;
-    const charPerSec = (promise.end_index - promise.start_index) / s;
+    const charPerSec = (typingTest.end_index - typingTest.start_index) / s;
     const wpm = charPerSec / (60 * 5);
     const typingData: UserData = {
       user_id: userId,
-      end_idx: promise.end_index,
+      end_idx: typingTest.end_index,
       type_time_ms: timeMiliSec,
       error_chars: Array.from(errorMap.entries()),
-      topic_id: promise.topic_id,
-      start_idx: promise.start_index,
+      topic_id: typingTest.topic_id,
+      start_idx: typingTest.start_index,
       wpm: wpm,
-      finished: promise.done,
+      finished: typingTest.done,
     };
     fetcher.submit(typingData, { method: "POST", encType: "application/json" });
   };
@@ -89,14 +89,14 @@ export default function TypingTest() {
   return (
     <Typing
       key={typingKey}
-      text={promise.text}
+      text={typingTest.text}
       postDataHandler={postResults}
       loggedIn={Boolean(userId)}
       nextHandler={() => {
-        if (promise.done) {
-          nav(`/app/progress/random`, { replace: true });
+        if (typingTest.done) {
+          nav(`/app/progress/random`);
         }
-        nav(`/app/progress/${promise.topic_id}/${promise.end_index}`, {
+        nav(`/app/progress/${typingTest.topic_id}/${typingTest.end_index}`, {
           replace: true,
         });
       }}
@@ -188,7 +188,7 @@ export function Typing(props: {
   );
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full" id="typing">
       {enabled ? null : (
         <div className="absolute left-1/2 top-1/2 z-10 h-full w-screen -translate-x-1/2 -translate-y-1/2">
           <div className="h-[130%] w-full backdrop-blur-lg backdrop-filter">

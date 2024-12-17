@@ -35,4 +35,5 @@ export default {
   },
   safelist: ["hidden", "visible"],
   plugins: [],
+  darkMode: "selector",
 } satisfies Config;
