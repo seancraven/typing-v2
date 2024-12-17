@@ -15,5 +15,5 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const resp = await fetch(`${process.env.BE_URL}/random`);
   const topic = await resp.json();
 
-  return redirect(`/app/${topic.topic_id}/0`);
+  return redirect(`/app/progress/${topic.topic_id}/0`);
 }
