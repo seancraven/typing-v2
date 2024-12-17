@@ -24,9 +24,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <div>
-          <NavBar />
-        </div>
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -36,5 +33,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <div>
+      <NavBar />
+      <Outlet />
+    </div>
+  );
 }

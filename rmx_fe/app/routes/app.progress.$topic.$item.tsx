@@ -11,23 +11,14 @@ import {
   LoaderFunctionArgs,
   redirect,
 } from "@remix-run/node";
-import { commitSession, getSession } from "~/sessions";
+import { getSession, getUserIdChecked } from "~/sessions";
 import { KeyboardEvent, useEffect, useState } from "react";
-import Journey from "~/components/journey";
 
 const LINE_WIDTH = 60;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
-  const userId = session.get("userId") ?? null;
-  if (!userId) {
-    session.unset("userId");
-    return redirect("/app/login", {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
-    });
-  }
+  const userId = getUserIdChecked(session);
   if (!params.topic || !params.item) {
     return redirect("/app/random");
   }
