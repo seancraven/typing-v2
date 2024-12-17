@@ -10,7 +10,11 @@ import { commitSession, getSession } from "~/sessions";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
-  return session.has("userId");
+  const isLoggedIn = session.has("userId");
+  if (isLoggedIn) {
+    return redirect("/app/random");
+  }
+  return isLoggedIn;
 }
 export async function action({ request }: ActionFunctionArgs) {
   const data = await request.formData();

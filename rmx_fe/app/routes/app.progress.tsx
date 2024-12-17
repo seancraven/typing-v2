@@ -1,29 +1,12 @@
-import {
-  Outlet,
-  useFetcher,
-  useLoaderData,
-  useNavigate,
-  useRouteError,
-} from "@remix-run/react";
-import {
-  ActionFunctionArgs,
-  LoaderFunctionArgs,
-  redirect,
-} from "@remix-run/node";
-import { commitSession, getSession } from "~/sessions";
+import { useEffect, useRef } from "react";
+import { Outlet, useLoaderData, useRouteError } from "@remix-run/react";
+import { LoaderFunctionArgs } from "@remix-run/node";
+import { getSession, getUserIdChecked } from "~/sessions";
 import Journey from "~/components/journey";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
-  const userId = session.get("userId") ?? null;
-  if (!userId) {
-    session.unset("userId");
-    return redirect("/app/login", {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
-    });
-  }
+  const userId = getUserIdChecked(session);
   const endpoint = `${process.env.BE_URL}/${userId}/progress`;
   const resp = await fetch(endpoint);
   if (resp.status != 200) {
@@ -37,22 +20,24 @@ export default function TypingTest() {
   const progJson: {
     lang: string;
     progress: number;
-    final_idx: string;
+    final_idx: number;
     topic_id: number;
+    title: string;
   }[] = useLoaderData();
-  const nav = useNavigate();
 
   return (
-    <div className="relative h-full w-full justify-center">
+    <div className="relative h-full w-full justify-center" id="progress">
       <div className="mx-auto h-full w-full items-center text-3xl">
         <div className="w-min-[800px] w-max-[1600px] mx-auto grid h-[200px] w-2/3 grid-cols-1 items-center">
           <div className="col-span-1 mx-auto w-[800px]">
             <Journey
               nameProgress={progJson.map(
-                ({ final_idx, progress, topic_id, lang }) => {
+                ({ final_idx, progress, topic_id, lang, title }) => {
                   return {
-                    topic: `${lang[0].toLocaleUpperCase()}${lang.slice(1)}: ${topic_id}`,
+                    topic: `${lang[0].toLocaleUpperCase()}${lang.slice(1)}: ${title}`,
                     progress,
+                    final_idx,
+                    topic_id,
                   };
                 },
               )}

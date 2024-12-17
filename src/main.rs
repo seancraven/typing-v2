@@ -162,6 +162,7 @@ struct TopicProgress {
     progress: f32,
     final_idx: usize,
     lang: String,
+    title: String,
 }
 #[get("/{user_id}/progress")]
 async fn get_progress(
@@ -178,6 +179,7 @@ async fn get_progress(
             progress: row.0,
             final_idx: row.2,
             lang: row.3,
+            title: row.4,
         })
         .collect::<Vec<TopicProgress>>();
 
