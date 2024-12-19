@@ -30,7 +30,7 @@ export default function Journey({
             className="w-min-64 mx-auto flex h-full w-full flex-col space-y-2 px-2"
           >
             <div className="mt-auto flex justify-end text-sm">
-              <span className="mt-auto justify-end font-medium text-gray-800 dark:text-gray-200">
+              <span className="mt-auto h-8 justify-start font-medium text-gray-800 dark:text-gray-200">
                 {item.topic}
               </span>
               <span className="ml-auto justify-end text-gray-800 dark:text-gray-200">
