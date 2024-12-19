@@ -17,10 +17,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 export default function Index() {
   return (
-    <div className="p-30 justfy-center bg-grey-900 flex py-10">
-      <div className="container mx-auto flex h-screen min-h-[100px] w-screen justify-center p-4 py-10 lg:w-5/12">
-        <Outlet />
-      </div>
+    <div>
+      <Outlet />
     </div>
   );
 }
