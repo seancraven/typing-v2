@@ -56,6 +56,13 @@ pub enum LoginErr {
     Unknown(#[from] anyhow::Error),
 }
 
+#[derive(Debug, Deserialize)]
+pub struct TypingInfo {
+    wpm: f64,
+    typing_length: usize,
+    error_rate: f64,
+}
+
 impl DB {
     pub async fn add_topic(&self, topic: &str, body: &str, lang: &str, title: &str) -> Result<i64> {
         let len = body.len() as i32;
@@ -137,6 +144,28 @@ impl DB {
         let new_id_back =
             Uuid::parse_str(&id).context("Parsing UUID string returned from DB failed:")?;
         Ok(new_id_back)
+    }
+    pub async fn get_runs(&self, user_id: Uuid) -> Result<impl Iterator<Item = TypingInfo>> {
+        let user_id = user_id.to_string();
+        let query_rows = sqlx::query!(r#"SELECT * FROM user_runs WHERE user_id = $1"#, user_id)
+            .fetch_all(&self.pool)
+            .await
+            .context("Failed to query user_runs.")?
+            .into_iter()
+            .map(|row| {
+                let typing_length = row.end_index - row.start_index;
+                let counts = row
+                    .errors
+                    .chars()
+                    .step_by(2)
+                    .fold(0, |acc, v| acc + v.to_digit(10).expect("Should be int"));
+                TypingInfo {
+                    wpm: row.wpm,
+                    typing_length: typing_length as usize,
+                    error_rate: counts as f64 / typing_length as f64,
+                }
+            });
+        Ok(query_rows)
     }
     pub async fn verify_user(&self, user: User) -> std::result::Result<uuid::Uuid, LoginErr> {
         let row = sqlx::query!(
@@ -339,6 +368,36 @@ mod test {
             }
             println!("Title {}:{title}", row.id);
             sqlx::query!("UPDATE topics SET title = $1 where id  = $2", title, row.id)
+                .execute(&db.pool)
+                .await
+                .unwrap();
+        }
+    }
+    // #[actix_web::test]
+    async fn _add_title() {
+        let client_tls_config = Arc::new(rustls_config());
+        let client = Client::builder()
+            .connector(Connector::new().rustls_0_23(client_tls_config.clone()))
+            .finish();
+        let db = DB::from_url("sqlite://database.db").await;
+        let rows = sqlx::query!("SELECT id, topic, topic_text FROM topics;")
+            .fetch_all(&db.pool)
+            .await
+            .unwrap()
+            .into_iter();
+        for row in rows {
+            let mut title = create_topic_title(&row.topic_text, &client).await.unwrap();
+            dbg!(&title);
+
+            let mut i = 0;
+            while title.contains(".") {
+                title = create_topic_title(&row.topic_text, &client).await.unwrap();
+                if i > 3 {
+                    panic!();
+                }
+                i += 1;
+            }
+            query!("UPDATE topics SET title = $1 WHERE id = $2", title, row.id)
                 .execute(&db.pool)
                 .await
                 .unwrap();

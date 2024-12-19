@@ -1,5 +1,7 @@
 import { Link } from "@remix-run/react";
+import { useEffect } from "react";
 import { useState } from "react";
+import { Sun, Moon } from "lucide-react";
 export function NavBar() {
   return (
     <nav className="z-50 border-gray-200 bg-primary-800">
@@ -11,7 +13,8 @@ export function NavBar() {
           </span>
         </a>
         <div className="relative flex items-center space-x-3 md:order-2 md:space-x-0 rtl:space-x-reverse">
-          {<UserButton />}
+          <ThemeToggle />
+          <UserButton />
         </div>
         <div
           className="hidden w-full items-center justify-between md:order-1 md:flex md:w-auto"
@@ -91,3 +94,43 @@ function NavDropDown(props: { setIsVisible: (arg0: boolean) => void }) {
     </div>
   );
 }
+
+const ThemeToggle = () => {
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Check if user has a theme preference in localStorage
+    const theme = localStorage.getItem("theme");
+    setDarkMode(theme === "dark");
+
+    // Apply the theme class to html element
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+    if (darkMode) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    }
+  };
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="rounded-lg p-2 transition-colors duration-200 hover:bg-gray-600 dark:hover:bg-gray-300"
+      aria-label="Toggle theme"
+    >
+      {darkMode ? (
+        <Sun className="h-5 w-5 text-gray-800 dark:text-gray-200" />
+      ) : (
+        <Moon className="h-5 w-5 text-gray-800 dark:text-gray-200" />
+      )}
+    </button>
+  );
+};

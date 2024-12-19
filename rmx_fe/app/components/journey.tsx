@@ -30,17 +30,17 @@ export default function Journey({
             className="w-min-64 mx-auto flex h-full w-full flex-col space-y-2 px-2"
           >
             <div className="mt-auto flex justify-end text-sm">
-              <span className="mt-auto justify-end font-medium text-gray-700">
+              <span className="mt-auto justify-end font-medium text-gray-800 dark:text-gray-200">
                 {item.topic}
               </span>
-              <span className="ml-auto justify-end text-gray-500">
+              <span className="ml-auto justify-end text-gray-800 dark:text-gray-200">
                 {(item.progress * 100).toFixed(0)}%
               </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-gray-200">
               <div
                 className="h-full rounded-full bg-blue-500 transition-all duration-300 ease-in-out"
-                style={{ width: `${item.progress.toFixed(1)}%` }}
+                style={{ width: `${(item.progress * 100).toFixed(1)}%` }}
               />
             </div>
           </Link>
