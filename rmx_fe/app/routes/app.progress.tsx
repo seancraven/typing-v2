@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { Outlet, useLoaderData, useRouteError } from "@remix-run/react";
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { getSession, getUserIdChecked } from "~/sessions";
@@ -41,7 +40,7 @@ export default function TypingTest() {
                   };
                 },
               )}
-            ></Journey>
+            />
           </div>
           <div className="col-span-1 flex">
             <Outlet />
@@ -50,11 +49,4 @@ export default function TypingTest() {
       </div>
     </div>
   );
-}
-export function ErrorBoundary() {
-  const error = useRouteError();
-  // When NODE_ENV=production:
-  // error.message = "Unexpected Server Error"
-  // error.stack = undefined
-  return <div>{error.message}</div>;
 }

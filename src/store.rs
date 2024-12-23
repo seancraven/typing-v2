@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use log::error;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
@@ -56,11 +56,13 @@ pub enum LoginErr {
     Unknown(#[from] anyhow::Error),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct TypingInfo {
     wpm: f64,
     typing_length: usize,
     error_rate: f64,
+    title: String,
+    lang: String,
 }
 
 impl DB {
@@ -147,24 +149,34 @@ impl DB {
     }
     pub async fn get_runs(&self, user_id: Uuid) -> Result<impl Iterator<Item = TypingInfo>> {
         let user_id = user_id.to_string();
-        let query_rows = sqlx::query!(r#"SELECT * FROM user_runs WHERE user_id = $1"#, user_id)
-            .fetch_all(&self.pool)
-            .await
-            .context("Failed to query user_runs.")?
-            .into_iter()
-            .map(|row| {
-                let typing_length = row.end_index - row.start_index;
-                let counts = row
-                    .errors
-                    .chars()
-                    .step_by(2)
-                    .fold(0, |acc, v| acc + v.to_digit(10).expect("Should be int"));
-                TypingInfo {
-                    wpm: row.wpm,
-                    typing_length: typing_length as usize,
-                    error_rate: counts as f64 / typing_length as f64,
-                }
-            });
+        let query_rows = sqlx::query!(
+            r#"
+            SELECT t.title, t.lang, r.wpm, r.errors, r.start_index, r.end_index FROM user_runs as r 
+            INNER JOIN topics as t ON r.topic_id = t.id 
+            WHERE r.user_id = $1"#,
+            user_id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .context("Failed to query user_runs.")?
+        .into_iter()
+        .map(|row| {
+            let typing_length = row.end_index - row.start_index;
+            dbg!(&row.errors);
+            dbg!(&row.wpm);
+            let counts = row
+                .errors
+                .chars()
+                .step_by(2)
+                .fold(0, |acc, v| acc + v.to_digit(10).expect("Should be int"));
+            TypingInfo {
+                wpm: row.wpm,
+                typing_length: typing_length as usize,
+                error_rate: counts as f64 / typing_length as f64,
+                lang: row.lang,
+                title: row.title,
+            }
+        });
         Ok(query_rows)
     }
     pub async fn verify_user(&self, user: User) -> std::result::Result<uuid::Uuid, LoginErr> {

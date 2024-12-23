@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT MAX(p.final_idx) as final_idx, p.topic_id, t.lang, t.text_len\n            FROM user_progress as p INNER JOIN topics as t on p.topic_id = t.id\n            WHERE p.user_id = $1 GROUP BY p.topic_id, t.lang, t.text_len;",
+  "query": "SELECT MAX(p.final_idx) as final_idx, p.topic_id, t.lang, t.text_len, t.title\n            FROM user_progress as p INNER JOIN topics as t on p.topic_id = t.id\n            WHERE p.user_id = $1 GROUP BY p.topic_id;",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,11 @@
         "name": "text_len",
         "ordinal": 3,
         "type_info": "Integer"
+      },
+      {
+        "name": "title",
+        "ordinal": 4,
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -31,8 +36,9 @@
       false,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "785c136284533f41f0049d05e8b86418d17cca9b8690db2a298823594a4a7345"
+  "hash": "f9de63eadf2cd10131eff3c24c822126b7770f502923d7971a039068bd9dcec3"
 }

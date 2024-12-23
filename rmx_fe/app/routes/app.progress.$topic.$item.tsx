@@ -1,10 +1,8 @@
 import {
   useFetcher,
   useLoaderData,
-  FetcherWithComponents,
   useParams,
   useNavigate,
-  Outlet,
 } from "@remix-run/react";
 import {
   ActionFunctionArgs,
@@ -12,7 +10,7 @@ import {
   redirect,
 } from "@remix-run/node";
 import { getSession, getUserIdChecked } from "~/sessions";
-import { KeyboardEvent, useEffect, useRef, useState } from "react";
+import { KeyboardEvent, useEffect, useState } from "react";
 
 const LINE_WIDTH = 60;
 
@@ -148,7 +146,6 @@ export function Typing(props: {
     setEnabled(true);
     return props.nextHandler();
   };
-
   const keypressCallback = (event: KeyboardEvent) =>
     handleKeypress(event, text, typingState, setTypingState, enabled, () =>
       setEnabled(false),
