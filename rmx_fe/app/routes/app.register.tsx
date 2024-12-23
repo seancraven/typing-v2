@@ -27,10 +27,6 @@ export async function action({ request }: ActionFunctionArgs) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user),
   });
-  const json_resp = await resp.text();
-  console.log(json_resp);
-  // json_resp.id;
-  // return json_resp.id;
   return null;
 }
 

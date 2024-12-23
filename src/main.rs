@@ -50,6 +50,7 @@ async fn main() {
                 .service(register)
                 .service(check_health)
                 .service(data_handler)
+                .service(stats_handler)
         })
         .bind("0.0.0.0:8080")
         .unwrap()
@@ -156,6 +157,16 @@ async fn data_handler(state: web::Data<DB>, data: Json<UserData>) -> Result<impl
         Err(e) => Err(ErrorInternalServerError(e)),
     }
 }
+#[get("/{user_id}/stats")]
+async fn stats_handler(state: web::Data<DB>, user_id: web::Path<String>) -> Result<impl Responder> {
+    let user_id: Uuid = user_id.parse().map_err(ErrorUnprocessableEntity)?;
+    let d = state.get_runs(user_id).await.map_err(|e| {
+        error!("Stats fetching failed id:{}:{}.", user_id, e);
+        ErrorInternalServerError(e)
+    })?;
+    Ok(HttpResponse::Ok().json(d.collect::<Vec<_>>()))
+}
+
 #[derive(Debug, Serialize)]
 struct TopicProgress {
     topic_id: usize,

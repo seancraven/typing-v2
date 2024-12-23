@@ -41,16 +41,13 @@ export async function action({ request }: ActionFunctionArgs) {
     case 400: {
       session.flash("error", "Invalid username");
       return { msg: "Incorrect username." };
-      break;
     }
     case 401: {
       session.flash("error", "Invalid password");
       return { msg: "Incorrect password." };
-      break;
     }
     case 500: {
       return { msg: "Unexpected error." };
-      break;
     }
     case 200: {
       const id: string = (await resp.json()).id;
@@ -69,11 +66,9 @@ export async function action({ request }: ActionFunctionArgs) {
         return redirect(`/app/${topic}/${item}`, cookies);
       }
       return redirect(`/app/random`, cookies);
-      break;
     }
     default: {
       return { msg: "Unexpected error." };
-      break;
     }
   }
 }
