@@ -1,5 +1,6 @@
 import { LoaderFunction } from "@remix-run/node";
 
 export const loader: LoaderFunction = async () => {
-  return { health: "Healthy" };
+  const out = await fetch(`${process.env.BACKEND_URL}/health/status`);
+  return { health: "Healthy", backend: out.status };
 };
