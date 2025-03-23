@@ -70,7 +70,7 @@ export default function TypingTest() {
     }
     const s = timeMiliSec / 1000;
     const charPerSec = (typingTest.end_index - typingTest.start_index) / s;
-    const wpm = charPerSec / (60 * 5);
+    const wpm = (charPerSec / 5) * 60;
     const typingData: UserData = {
       user_id: userId,
       end_idx: typingTest.end_index,
@@ -170,8 +170,8 @@ export function Typing(props: {
       }
       clearInterval(timerCallbackState);
       postDataHandler(
-        typingState.keypressHistory[0][1] -
-          typingState.keypressHistory.at(-1)[1],
+        typingState.keypressHistory.at(-1)[1] -
+          typingState.keypressHistory[0][1],
         errors,
       );
       setComplete(true);

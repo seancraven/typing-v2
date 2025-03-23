@@ -36,6 +36,7 @@ export async function action({ request }: ActionFunctionArgs) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user),
   });
+  console.log(resp.status);
   const session = await getSession(request.headers.get("Cookie"));
   switch (resp.status) {
     case 400: {
