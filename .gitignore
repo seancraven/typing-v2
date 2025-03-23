@@ -5,3 +5,7 @@ Cargo.lock
 Cargo.lock
 /assets/js
 .env
+
+terraform/.terraform
+*.db-shm
+*.db-wal
