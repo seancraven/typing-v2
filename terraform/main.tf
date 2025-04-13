@@ -69,3 +69,6 @@ resource "hcloud_server" "web" {
   }
 }
 
+output "hcloud_ip" {
+  value = hcloud_server.web.ipv6_address
+}
