@@ -9,3 +9,6 @@ Cargo.lock
 terraform/.terraform
 *.db-shm
 *.db-wal
+
+*.key
+*.tfstate
