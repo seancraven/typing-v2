@@ -30,6 +30,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
+          target: linux/arm64
           tags: |
             ghcr.io/${{ github.repository }}/backend:latest
           context: .
@@ -60,6 +61,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
+          target: linux/arm64
           tags: |
             ghcr.io/${{ github.repository }}/frontend:latest
           context: rmx_fe
