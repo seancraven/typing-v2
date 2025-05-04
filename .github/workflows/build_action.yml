@@ -33,8 +33,7 @@ jobs:
           push: true
           #  The repository name is constructed using github context
           tags: |
-            ghcr.io/${{ github.repository }}/backend:latest
-            ghcr.io/${{ github.repository }}/backend:${{ github.sha }} #push also with the commit sha
+            ghcr.io/seancraven/backend:latest
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
