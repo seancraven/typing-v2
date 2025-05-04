@@ -1,10 +1,6 @@
 name: Build and Push Backend Docker Image
 
 on:
-  push:
-    branches:
-      - main # Or your main branch
-      - terraform
   pull_request: # Optional: Trigger on pull requests
     branches:
       - main
