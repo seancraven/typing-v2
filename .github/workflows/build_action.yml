@@ -36,10 +36,9 @@ jobs:
         with:
           push: true
           #  The repository name is constructed using github context
-          repository: ghcr.io/${{ github.repository }}/typing # Customize 'my-app'
           tags: |
-            ghcr.io/${{ github.repository }}/typing:latest
-            ghcr.io/${{ github.repository }}/typing:${{ github.sha }} #push also with the commit sha
+            ghcr.io/${{ github.repository }}/backend:latest
+            ghcr.io/${{ github.repository }}/backend:${{ github.sha }} #push also with the commit sha
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
