@@ -37,9 +37,12 @@ resource "tls_private_key" "pem" {
   rsa_bits  = 4096
 }
 
+resource "tls_private_key" "ssh-key" {
+  algorithm = "ED25519"
+}
 
 resource "tls_cert_request" "csr" {
-  private_key_pem = tls_private_key.pem.public_key_pem
+  private_key_pem = tls_private_key.pem.private_key_pem
   subject {
     common_name  = "*.programtype.com"
     organization = " Sean Craven"
@@ -76,32 +79,72 @@ provider "hcloud" {
 }
 
 resource "hcloud_ssh_key" "main" {
-  name       = "main-ssh"
-  public_key = file("${path.root}/../.ssh/hcloud_ssh.pub")
+  name       = "type-ssh"
+  public_key = file("./ssh.pub")
 }
 
 resource "hcloud_server" "web" {
-  name        = "typing-server"
-  image       = "fedora-41"
-  server_type = "cax11"
-  location    = "nbg1"
-  ssh_keys    = [hcloud_ssh_key.main.id]
+  name         = "typing-server"
+  image        = "fedora-41"
+  server_type  = "cax11"
+  location     = "nbg1"
+  ssh_keys     = [hcloud_ssh_key.main.id]
+  firewall_ids = [hcloud_firewall.web-firewall.id]
   public_net {
-    ipv4_enabled = false
+    ipv4_enabled = true
     ipv6_enabled = true
   }
+}
+resource "hcloud_firewall" "web-firewall" {
+  name = "firewall"
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    source_ips = [
+      "0.0.0.0/0",
+      "::/0"
+    ]
+    port = "80"
+  }
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "443"
+    source_ips = [
+      "0.0.0.0/0",
+      "::/0"
+    ]
+  }
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "22"
+    source_ips = [
+      "0.0.0.0/0",
+      "::/0"
+    ]
+  }
+
+  rule {
+    direction = "out"
+    protocol  = "tcp"
+    port      = "any"
+    destination_ips = [
+      "0.0.0.0/0",
+      "::/0"
+    ]
+  }
+
+}
+
+resource "local_file" "key-crt" {
+  filename = "~/secret/key.crt"
+  content  = cloudflare_origin_ca_certificate.ca_cert.certificate
+
 }
 
 output "hcloud_ip" {
   value = hcloud_server.web.ipv6_address
 }
 
-output "key-pem" {
-  value     = tls_private_key.pem.private_key_pem
-  sensitive = true
-}
 
-output "key-crt" {
-  value     = cloudflare_origin_ca_certificate.ca_cert.certificate
-  sensitive = true
-}

@@ -1,27 +1,22 @@
 services:
   frontend:
-    build:
-      context: rmx_fe
-      dockerfile: Dockerfile
+    image: ghcr.io/seancraven/typing-v2/frontend:latest
     environment:
-      BE_URL: "http://localhost:8080"
+      BE_URL: "http://backend:8080"
     ports:
       - 3000:3000
       - 3010:3010
     cpus: 1
     volumes:
-      - ./rmx_fe/app:/app/app
+      - /mnt/secrets:/app/secrets/
     entrypoint:
       - /bin/sh
       - -c
       - |
         npm run dev
-    network_mode: host
   backend:
     cpus: 1
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    image: ghcr.io/seancraven/typing-v2/frontend:latest
     environment:
       DATABASE_URL: sqlite:///mnt/database.db
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
@@ -29,5 +24,6 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./:/mnt/
-    network_mode: host
+      - db:/mnt/database.db
+volumes:
+  db:
