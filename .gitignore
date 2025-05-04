@@ -12,3 +12,5 @@ terraform/.terraform
 
 *.key
 *.tfstate
+terraform/key.crt
+terraform/key.pem
