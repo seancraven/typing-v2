@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main # Or your main branch
+      - terraform
   pull_request: # Optional: Trigger on pull requests
     branches:
       - main
