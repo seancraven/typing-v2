@@ -86,7 +86,6 @@ jobs:
           echo -e "${{ secrets.ssh }}" > ~/.ssh/ssh
           echo -e "${{ secrets.ssh_pub }}" > ~/.ssh/ssh.pub
           cp terraform/cfgssh ~/.ssh/config
-          cat ~/.ssh/config
           ssh type
       - name: context
         run: |
