@@ -16,3 +16,4 @@ terraform/key.crt
 terraform/key.pem
 secrets/
 *ssh*
+terraform/secret
