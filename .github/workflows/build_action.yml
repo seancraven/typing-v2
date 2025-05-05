@@ -69,3 +69,29 @@ jobs:
           dockerfile: rmx_fe/Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  compose_up:
+    # needs: [build-and-push-backend, build-and-push-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Compose
+        uses: docker/setup-compose-action@v1
+
+      - name: SSH config
+        run: |
+          echo -e ${{ secrets.ssh }} ~/.ssh/ssh
+          echo -e ${{ secrets.ssh_pub }} ~/.ssh/ssh.pub
+          cfg="host type
+              HostName 2a01:4f8:1c1b:d901::1
+              User root
+              IdentityFile ~/.ssh/ssh
+          "
+          echo -e $cfg > ~/.ssh/config
+      - name: context
+        run: |
+          docker compose create context type --host="ssh://type"
+          docker compose context use type
+          echo $(docker compose logs)
