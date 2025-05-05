@@ -82,6 +82,7 @@ jobs:
 
       - name: SSH config
         run: |
+          mkdir ~/.ssh -p
           echo -e "${{ secrets.ssh }}" > ~/.ssh/ssh
           echo -e "${{ secrets.ssh_pub }}" > ~/.ssh/ssh.pub
           cfg="host type
