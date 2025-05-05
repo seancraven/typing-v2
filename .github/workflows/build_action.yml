@@ -91,6 +91,7 @@ jobs:
               IdentityFile ~/.ssh/ssh
           "
           echo -e $cfg > ~/.ssh/config
+          cat ~/.ssh/config
           ssh type
       - name: context
         run: |
