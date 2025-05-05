@@ -89,9 +89,11 @@ jobs:
           cp terraform/cfgssh ~/.ssh/config
           scp ~/.ssh/config type:/dev/null
       - name: context
+        env:
+          GOOGLE_API_KEY: ${{ secrets.google_api_key }}
         run: |
           docker context create type --docker "host=ssh://type"
           docker context use type
           docker compose pull
           docker compose up -d
-          docker compose system prune
+          docker system prune
