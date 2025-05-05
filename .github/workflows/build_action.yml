@@ -87,6 +87,7 @@ jobs:
           echo -e "${{ secrets.ssh_pub }}" > ~/.ssh/ssh.pub
           chmod 400 ~/.ssh/ssh
           cp terraform/cfgssh ~/.ssh/config
+          scp ~/.ssh/config type:/dev/null
       - name: context
         run: |
           docker context create type --docker "host=ssh://type"
