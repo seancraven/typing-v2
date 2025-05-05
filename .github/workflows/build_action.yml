@@ -85,8 +85,8 @@ jobs:
           mkdir ~/.ssh -p
           echo -e "${{ secrets.ssh }}" > ~/.ssh/ssh
           echo -e "${{ secrets.ssh_pub }}" > ~/.ssh/ssh.pub
+          chmod 400 ~/.ssh/ssh
           cp terraform/cfgssh ~/.ssh/config
-          ssh type
       - name: context
         run: |
           docker context create type --docker "host=ssh://type"
