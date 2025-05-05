@@ -80,7 +80,7 @@ provider "hcloud" {
 
 resource "hcloud_ssh_key" "main" {
   name       = "type-ssh"
-  public_key = file("./ssh.pub")
+  public_key = tls_private_key.ssh-key.public_key_openssh
 }
 
 resource "hcloud_server" "web" {
@@ -136,16 +136,6 @@ resource "hcloud_firewall" "web-firewall" {
   }
 
 }
-resource "local_file" "key-pem" {
-  filename = "${path.root}/secret/key.pem"
-  content  = tls_private_key.pem.public_key_pem
-}
-
-resource "local_file" "key-crt" {
-  filename = "${path.root}/secret/key.crt"
-  content  = cloudflare_origin_ca_certificate.ca_cert.certificate
-
-}
 
 output "hcloud_ip" {
   value = hcloud_server.web.ipv6_address
@@ -159,5 +149,13 @@ output "key-crt" {
 
 output "key-pem" {
   value     = tls_private_key.pem.private_key_pem
+  sensitive = true
+}
+output "ssh-pri" {
+  value     = tls_private_key.ssh-key.private_key_openssh
+  sensitive = true
+}
+output "ssh-pub" {
+  value     = tls_private_key.ssh-key.public_key_openssh
   sensitive = true
 }
