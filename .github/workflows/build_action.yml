@@ -92,4 +92,6 @@ jobs:
         run: |
           docker context create type --docker "host=ssh://type"
           docker context use type
-          echo $(docker compose logs)
+          docker compose pull
+          docker compose up -d
+          docker compose system prune
