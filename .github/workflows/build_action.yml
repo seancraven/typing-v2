@@ -93,6 +93,6 @@ jobs:
           echo -e $cfg > ~/.ssh/config
       - name: context
         run: |
-          docker compose create context type --host="ssh://type"
-          docker compose context use type
+          docker create context type --host="ssh://type"
+          docker context use type
           echo $(docker compose logs)
