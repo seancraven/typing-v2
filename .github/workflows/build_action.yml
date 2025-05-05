@@ -34,9 +34,8 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}/backend:latest
           context: .
-          dockerfile: Dockerfile
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/backend:latest
+          cache-to: type=inline
 
   build-and-push-frontend:
     runs-on: ubuntu-latest
@@ -67,8 +66,8 @@ jobs:
             ghcr.io/${{ github.repository }}/frontend:latest
           context: rmx_fe
           dockerfile: rmx_fe/Dockerfile
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/backend:latest
+          cache-to: type=inline
 
   compose_up:
     needs: [build-and-push-backend, build-and-push-frontend]
