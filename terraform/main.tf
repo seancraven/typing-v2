@@ -82,10 +82,13 @@ resource "hcloud_ssh_key" "main" {
   name       = "type-ssh"
   public_key = tls_private_key.ssh-key.public_key_openssh
 }
+data "hcloud_image" "fedora-docker" {
+  id = 235453338
+}
 
 resource "hcloud_server" "web" {
   name         = "typing-server"
-  image        = "fedora-41"
+  image        = data.hcloud_image.fedora-docker.id
   server_type  = "cax11"
   location     = "nbg1"
   ssh_keys     = [hcloud_ssh_key.main.id]
