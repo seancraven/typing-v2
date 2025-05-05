@@ -24,7 +24,8 @@ mod text;
 async fn main() {
     env_logger::init();
     info!("Booting server.");
-    info!("test")
+    info!("test");
+    info!("test");
     info!("Binding to localhost:8080");
     let db_url = std::env::var("DATABASE_URL").expect("Requires DATABASE_URL env to be set.");
     let db = DB::from_url(db_url).await;
