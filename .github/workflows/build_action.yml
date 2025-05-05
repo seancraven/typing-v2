@@ -85,12 +85,13 @@ jobs:
           mkdir ~/.ssh -p
           echo -e "${{ secrets.ssh }}" > ~/.ssh/ssh
           echo -e "${{ secrets.ssh_pub }}" > ~/.ssh/ssh.pub
-          cfg="host type
+          cfg="Host type
               HostName 2a01:4f8:1c1b:d901::1
               User root
               IdentityFile ~/.ssh/ssh
           "
           echo -e $cfg > ~/.ssh/config
+          ssh type
       - name: context
         run: |
           docker context create type --docker "host=ssh://type"
