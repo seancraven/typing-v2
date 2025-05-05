@@ -36,6 +36,9 @@ app.get("/health/status", () => "Healthy");
 app.use(
   viteDevServer ? viteDevServer.middlewares : express.static("build/client"),
 );
+app.use(function (req, res) {
+  res.redirect("https://" + domain + req.originalUrl);
+});
 
 const build = viteDevServer
   ? () => viteDevServer.ssrLoadModule("virtual:remix/server-build")
