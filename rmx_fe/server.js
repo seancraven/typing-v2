@@ -36,9 +36,6 @@ app.get("/health/status", () => "Healthy");
 app.use(
   viteDevServer ? viteDevServer.middlewares : express.static("build/client"),
 );
-app.use(function (req, res) {
-  res.redirect("https://" + domain + req.originalUrl);
-});
 
 const build = viteDevServer
   ? () => viteDevServer.ssrLoadModule("virtual:remix/server-build")
@@ -52,6 +49,10 @@ if (!secret_dir) {
   console.log("No tls secret dir found. Hosting with http.");
   server = app;
 } else {
+  const domain = process.env.HOST ?? "localhost";
+  app.use(function (req, res) {
+    res.redirect("https://" + domain + req.originalUrl);
+  });
   console.log("TLS secrets found.");
   server = https.createServer(
     {
