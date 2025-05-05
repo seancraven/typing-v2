@@ -58,7 +58,7 @@ if (!secret_dir) {
     app,
   );
 }
-const port = Number(process.env.PORT) ?? 3000;
+const port = Number(process.env.PORT ?? 3000);
 server.listen(port, () => {
   console.log("App listening on port 3000");
 });

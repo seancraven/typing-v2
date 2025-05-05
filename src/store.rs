@@ -1,7 +1,10 @@
+use std::{path::PathBuf, str::FromStr};
+
 use anyhow::{Context, Result};
 use log::error;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
+use std::fs::File;
 use uuid::Uuid;
 
 use crate::UserData;
@@ -12,6 +15,14 @@ pub struct DB {
 }
 impl DB {
     pub async fn from_url(url: impl AsRef<str>) -> DB {
+        let url = url.as_ref();
+        let Some(filename) = url.strip_prefix("sqlite://") else {
+            panic!("Can't setup database sqlite file prefix is wrong {}", url)
+        };
+        let path = PathBuf::from_str(filename).expect("Path should be valid");
+        if !path.exists() {
+            File::create(path).expect("File failed to create.");
+        }
         DB {
             pool: sqlx::SqlitePool::connect(url.as_ref())
                 .await
@@ -69,7 +80,7 @@ impl DB {
     pub async fn add_topic(&self, topic: &str, body: &str, lang: &str, title: &str) -> Result<i64> {
         let len = body.len() as i32;
         sqlx::query_scalar!(
-            r#"INSERT INTO topics 
+            r#"INSERT INTO topics
             (topic, topic_text, text_len, lang, title)
             VALUES ($1, $2, $3, $4, $5) RETURNING id;"#,
             topic,
@@ -98,7 +109,7 @@ impl DB {
         let end_idx = run.end_idx as u32;
 
         sqlx::query!(
-            r#"INSERT INTO user_runs 
+            r#"INSERT INTO user_runs
             (user_id, errors, finished, start_index, end_index, topic_id, wpm, type_time)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8 )"#,
             user_id,
@@ -151,8 +162,8 @@ impl DB {
         let user_id = user_id.to_string();
         let query_rows = sqlx::query!(
             r#"
-            SELECT t.title, t.lang, r.wpm, r.errors, r.start_index, r.end_index FROM user_runs as r 
-            INNER JOIN topics as t ON r.topic_id = t.id 
+            SELECT t.title, t.lang, r.wpm, r.errors, r.start_index, r.end_index FROM user_runs as r
+            INNER JOIN topics as t ON r.topic_id = t.id
             WHERE r.user_id = $1"#,
             user_id
         )
@@ -266,7 +277,7 @@ impl DB {
         &self,
     ) -> Result<impl Iterator<Item = (f64, usize, String, uuid::Uuid)>> {
         Ok(sqlx::query!(
-            r#"SELECT 
+            r#"SELECT
             topic_id,
             final_idx,
             text_len,

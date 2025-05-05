@@ -5,11 +5,11 @@ services:
       BE_URL: "http://backend:8080"
       SECRET_DIR: /app/secret
     ports:
-      - 80:3000
+      - 443:3000
       - 3010:3010
     cpus: 1
     volumes:
-      - /mnt/secret/:/app/secrets/
+      - /mnt/secret/:/app/secret/
     entrypoint:
       - /bin/sh
       - -c

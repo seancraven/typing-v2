@@ -158,6 +158,6 @@ output "key-crt" {
 }
 
 output "key-pem" {
-  value     = tls_private_key.pem.public_key_pem
+  value     = tls_private_key.pem.private_key_pem
   sensitive = true
 }
