@@ -3,20 +3,21 @@ services:
     image: ghcr.io/seancraven/typing-v2/frontend:latest
     environment:
       BE_URL: "http://backend:8080"
+      SECRET_DIR: /app/secret
     ports:
-      - 3000:3000
+      - 80:3000
       - 3010:3010
     cpus: 1
     volumes:
-      - /mnt/secrets:/app/secrets/
+      - /mnt/secret/:/app/secrets/
     entrypoint:
       - /bin/sh
       - -c
       - |
-        npm run dev
+        npm run start
   backend:
     cpus: 1
-    image: ghcr.io/seancraven/typing-v2/frontend:latest
+    image: ghcr.io/seancraven/typing-v2/backend:latest
     environment:
       DATABASE_URL: sqlite:///mnt/database.db
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}

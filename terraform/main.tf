@@ -136,9 +136,13 @@ resource "hcloud_firewall" "web-firewall" {
   }
 
 }
+resource "local_file" "key-pem" {
+  filename = "${path.root}/secret/key.pem"
+  content  = tls_private_key.pem.public_key_pem
+}
 
 resource "local_file" "key-crt" {
-  filename = "~/secret/key.crt"
+  filename = "${path.root}/secret/key.crt"
   content  = cloudflare_origin_ca_certificate.ca_cert.certificate
 
 }
@@ -148,3 +152,12 @@ output "hcloud_ip" {
 }
 
 
+output "key-crt" {
+  value     = cloudflare_origin_ca_certificate.ca_cert.certificate
+  sensitive = true
+}
+
+output "key-pem" {
+  value     = tls_private_key.pem.public_key_pem
+  sensitive = true
+}

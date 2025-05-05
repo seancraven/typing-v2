@@ -1,6 +1,7 @@
 import { createRequestHandler } from "@remix-run/express";
 import express from "express";
 import sourceMapSupport from "source-map-support";
+import https from "node:https";
 import fs from "node:fs";
 import url from "node:url";
 import process from "node:process";
@@ -42,6 +43,22 @@ const build = viteDevServer
 
 app.all("*", createRequestHandler({ build }));
 
-app.listen(3000, () => {
-  console.log("App listening on http://localhost:3000");
+const secret_dir = process.env.SECRET_DIR;
+let server;
+if (!secret_dir) {
+  console.log("No tls secret dir found. Hosting with http.");
+  server = app;
+} else {
+  console.log("TLS secrets found.");
+  server = https.createServer(
+    {
+      key: fs.readFileSync(`${secret_dir}/key.pem`),
+      cert: fs.readFileSync(`${secret_dir}/key.crt`),
+    },
+    app,
+  );
+}
+const port = Number(process.env.PORT) ?? 3000;
+server.listen(port, () => {
+  console.log("App listening on port 3000");
 });
