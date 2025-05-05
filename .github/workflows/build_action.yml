@@ -71,7 +71,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   compose_up:
-    # needs: [build-and-push-backend, build-and-push-frontend]
+    needs: [build-and-push-backend, build-and-push-frontend]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -88,7 +88,7 @@ jobs:
           chmod 400 ~/.ssh/ssh
           cp terraform/cfgssh ~/.ssh/config
           scp ~/.ssh/config type:/dev/null
-      - name: context
+      - name: Deploy images
         env:
           GOOGLE_API_KEY: ${{ secrets.google_api_key }}
         run: |
@@ -96,4 +96,4 @@ jobs:
           docker context use type
           docker compose pull
           docker compose up -d
-          docker system prune
+          docker system prune -y
