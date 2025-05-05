@@ -1,4 +1,5 @@
 Host type
     HostName 195.201.145.113
+    StrictHostKeyChecking no
     User root
     IdentityFile ~/.ssh/ssh
