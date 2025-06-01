@@ -1,7 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{Context, Result};
-use log::error;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::fs::File;
@@ -20,11 +20,15 @@ impl DB {
             panic!("Can't setup database sqlite file prefix is wrong {}", url)
         };
         let path = PathBuf::from_str(filename).expect("Path should be valid");
+        let fname = path.to_str().unwrap();
+
         if !path.exists() {
-            File::create(path).expect("File failed to create.");
+            info!("Making database file {}", fname);
+            File::create(&path).expect("File failed to create.");
         }
+        info!("Connecting to database at {}:{}", fname, url);
         DB {
-            pool: sqlx::SqlitePool::connect(url.as_ref())
+            pool: sqlx::SqlitePool::connect(url)
                 .await
                 .expect("can't connect to db"),
         }

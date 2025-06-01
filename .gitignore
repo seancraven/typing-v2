@@ -1,4 +1,5 @@
-/target
+backend/target/
+target/
 /node_modules/
 package-lock.json
 /assets/js
@@ -7,7 +8,7 @@ package-lock.json
 terraform/.terraform
 *.db-shm
 *.db-wal
-
+*.db
 *.key
 *.tfstate
 terraform/key.crt
