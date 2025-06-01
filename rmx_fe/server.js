@@ -1,4 +1,4 @@
-import { createRequestHandler } from "@remix-run/express";
+import { createRequestHandler } from "@react-router/express";
 import express from "express";
 import sourceMapSupport from "source-map-support";
 import https from "node:https";
@@ -38,7 +38,7 @@ app.use(
 );
 
 const build = viteDevServer
-  ? () => viteDevServer.ssrLoadModule("virtual:remix/server-build")
+  ? () => viteDevServer.ssrLoadModule("virtual:react-router/server-build")
   : await import("./build/server/index.js");
 
 app.all("*", createRequestHandler({ build }));
