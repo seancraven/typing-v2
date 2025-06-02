@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT t.title, t.lang, r.wpm, r.errors, r.start_index, r.end_index FROM user_runs as r \n            INNER JOIN topics as t ON r.topic_id = t.id \n            WHERE r.user_id = $1",
+  "query": "\n            SELECT t.title, t.lang, r.wpm, r.errors, r.start_index, r.end_index FROM user_runs as r\n            INNER JOIN topics as t ON r.topic_id = t.id\n            WHERE r.user_id = $1",
   "describe": {
     "columns": [
       {
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "84f9fb72dd6b19493e62eeeb80a30e126853fa560d229df6ed8207a88bba781f"
+  "hash": "dd0020e6424873820b06fb5401710be9d0a9dd519343f9d10347ccf3e7fa3621"
 }
