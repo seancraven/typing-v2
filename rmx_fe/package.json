@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "BE_URL=http://localhost:8080 node ./server.js",
+    "dev": " react-router dev",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
-    "start": "BE_URL=http://localhost:8080 cross-env NODE_ENV=production node ./server.js",
+    "start": "node ./server.js",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
