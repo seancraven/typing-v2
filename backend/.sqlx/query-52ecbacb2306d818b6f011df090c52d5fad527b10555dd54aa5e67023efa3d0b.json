@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT \n            topic_id,\n            final_idx,\n            text_len,\n            topic,\n            user_id\n            FROM user_progress AS p INNER JOIN topics AS t on p.topic_id = t.id\n            GROUP BY topic_id, final_idx, text_len, topic, user_id;",
+  "query": "SELECT\n            topic_id,\n            final_idx,\n            text_len,\n            topic,\n            user_id\n            FROM user_progress AS p INNER JOIN topics AS t on p.topic_id = t.id\n            GROUP BY topic_id, final_idx, text_len, topic, user_id;",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "f7f9d4aa4f4579421bb4f79613d49d0a3d5296ffa251801454e76a15b6372239"
+  "hash": "52ecbacb2306d818b6f011df090c52d5fad527b10555dd54aa5e67023efa3d0b"
 }
