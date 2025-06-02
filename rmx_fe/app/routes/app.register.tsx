@@ -1,4 +1,4 @@
-import { ActionFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs } from "react-router";
 import { User } from "~/api_type";
 import LoginWidget from "~/components/login_widget";
 

@@ -1,4 +1,4 @@
-import { Link } from "@remix-run/react";
+import { Link } from "react-router";
 import { useEffect } from "react";
 import { useState } from "react";
 import { Moon } from "lucide-react";
