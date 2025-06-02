@@ -1,12 +1,5 @@
-import {
-  Links,
-  Meta,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-  useRouteError,
-} from "@remix-run/react";
-import type { LinksFunction } from "@remix-run/node";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from "react-router";
+import type { LinksFunction } from "react-router";
 
 import stylesheet from "~/tailwind.css?url";
 import { NavBar } from "./components/nav";
@@ -15,6 +8,7 @@ export const links: LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
 ];
 
+// test
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">

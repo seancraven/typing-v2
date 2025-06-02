@@ -1,5 +1,5 @@
-import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
-import { Outlet, redirect, useParams } from "@remix-run/react";
+import type { LoaderFunctionArgs, MetaFunction } from "react-router";
+import { Outlet, redirect, useParams } from "react-router";
 import { getSession, getUserIdChecked } from "~/sessions";
 
 export const meta: MetaFunction = () => {
