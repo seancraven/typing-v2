@@ -1,7 +1,7 @@
 name: Build and Push Backend Docker Image
 
 on:
-  pull_request: # Optional: Trigger on pull requests
+  push: # Optional: Trigger on pull requests
     branches:
       - main
 
