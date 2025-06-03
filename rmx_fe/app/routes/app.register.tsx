@@ -22,14 +22,19 @@ export async function action({ request }: ActionFunctionArgs) {
     password: password.toString(),
     email: email.toString(),
   };
-  const resp = await fetch(`${process.env.BE_URL}/register`, {
+  const resp = fetch(`${process.env.BE_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user),
   });
-  return null;
+
+  return resp;
 }
 
 export default function Register() {
-  return <LoginWidget isLogin={false} />;
+  return (
+    <div className="mt-20">
+      <LoginWidget isLogin={false} />
+    </div>
+  );
 }

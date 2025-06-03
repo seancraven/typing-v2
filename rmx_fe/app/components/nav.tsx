@@ -1,8 +1,6 @@
 import { Link } from "react-router";
 import { useEffect } from "react";
 import { useState } from "react";
-import { Moon } from "lucide-react";
-import { Sun } from "lucide-react";
 export function NavBar() {
   return (
     <nav className="z-50 border-gray-200 bg-primary-800">
@@ -10,7 +8,7 @@ export function NavBar() {
         <a className="flex items-center space-x-3 rtl:space-x-reverse" href="/">
           <img src="/image.webp" className="h-8" alt="Flowbite Logo" />
           <span className="self-center whitespace-nowrap text-2xl font-semibold text-white">
-            TestTyping
+            ProgramType
           </span>
         </a>
         <div className="relative flex items-center space-x-3 md:order-2 md:space-x-0 rtl:space-x-reverse">
@@ -69,7 +67,7 @@ function NavDropDown(props: { setIsVisible: (arg0: boolean) => void }) {
       <ul className="py-2" aria-labelledby="user-menu-button">
         <li>
           <Link
-            to="/app/stats"
+            to="/app/stats/summary"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white"
           >
             Typing Stats
@@ -110,7 +108,7 @@ function ThemeToggle() {
   }, []);
 
   const toggleTheme = () => {
-    setDarkMode(!darkMode);
+    setDarkMode((darkMode) => !darkMode);
     if (darkMode) {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
@@ -126,12 +124,7 @@ function ThemeToggle() {
       className="rounded-lg p-2 transition-colors duration-200 hover:bg-gray-600 dark:hover:bg-gray-300"
       aria-label="Toggle theme"
     >
-      {darkMode ? "Sun" : "Moon"}
-      {/* {darkMode ? ( */}
-      {/*   <Sun className="h-5 w-5 text-gray-800 dark:text-gray-200" /> */}
-      {/* ) : ( */}
-      {/*   <Moon className="h-5 w-5 text-gray-800 dark:text-gray-200" /> */}
-      {/* )} */}
+      {darkMode ? "Light" : "Dark"}
     </button>
   );
 }

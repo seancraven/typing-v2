@@ -2,13 +2,6 @@ import type { LoaderFunctionArgs, MetaFunction } from "react-router";
 import { Outlet, redirect, useParams } from "react-router";
 import { getSession, getUserIdChecked } from "~/sessions";
 
-export const meta: MetaFunction = () => {
-  return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
-  ];
-};
-
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
   getUserIdChecked(session);
