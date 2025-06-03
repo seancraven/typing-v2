@@ -33,6 +33,7 @@ export async function action({ request }: ActionFunctionArgs) {
     body: JSON.stringify(user),
   });
   console.log(resp.status);
+  // TODO: Should move this to frontend with suspense.
   const session = await getSession(request.headers.get("Cookie"));
   switch (resp.status) {
     case 400: {
@@ -72,5 +73,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function Login() {
   const loggedIn = useLoaderData<typeof loader>();
-  return !loggedIn ? <LoginWidget isLogin={true} /> : null;
+  if (loggedIn) {
+    return null;
+  }
+  return (
+    <div className="mt-20">
+      hi
+      <LoginWidget isLogin={true} />
+    </div>
+  );
 }
