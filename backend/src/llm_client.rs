@@ -9,7 +9,7 @@ pub async fn single_question(
     client: &Client,
 ) -> anyhow::Result<String> {
     let api_key = std::env::var("GOOGLE_API_KEY").unwrap();
-    let endpoint: String= format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={}", api_key);
+    let endpoint: String= format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}", api_key);
     let req = client.post(endpoint);
     let json = GenerationRequest::new_with_contents(vec![
         Content::new_system_message(system_message),
