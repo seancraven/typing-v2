@@ -95,25 +95,29 @@ function NavDropDown(props: { setIsVisible: (arg0: boolean) => void }) {
 }
 
 function ThemeToggle() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     const theme = localStorage.getItem("theme");
     setDarkMode(theme === "dark");
+    document.documentElement.classList.remove("dark");
+    document.documentElement.classList.remove("light");
 
-    // Apply the theme class to html element
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.add("light");
     }
   }, []);
 
   const toggleTheme = () => {
     setDarkMode((darkMode) => !darkMode);
+    console.log(document.documentElement.classList);
     if (darkMode) {
-      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.replace("dark", "light");
       localStorage.setItem("theme", "light");
     } else {
-      document.documentElement.classList.add("dark");
+      document.documentElement.classList.replace("light", "dark");
       localStorage.setItem("theme", "dark");
     }
   };
