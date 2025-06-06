@@ -34,17 +34,18 @@ export async function action({ request }: ActionFunctionArgs) {
   });
   console.log(resp.status);
   const session = await getSession(request.headers.get("Cookie"));
+  // Handle responses.
   switch (resp.status) {
     case 400: {
       session.flash("error", "Invalid username");
-      return { msg: "Incorrect username." };
+      return { msg: "Incorrect username.", success: false };
     }
     case 401: {
       session.flash("error", "Invalid password");
-      return { msg: "Incorrect password." };
+      return { msg: "Incorrect password.", success: false };
     }
     case 500: {
-      return { msg: "Unexpected error." };
+      return { msg: "Unexpected error.", success: false };
     }
     case 200: {
       //
@@ -67,7 +68,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return redirect(`/app/random`, cookies);
     }
     default: {
-      return { msg: "Unexpected error." };
+      return { msg: "Unexpected error.", success: false };
     }
   }
 }
@@ -79,7 +80,6 @@ export default function Login() {
   }
   return (
     <div className="mt-20">
-      hi
       <LoginWidget isLogin={true} />
     </div>
   );
