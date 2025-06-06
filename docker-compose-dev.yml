@@ -1,19 +1,17 @@
 services:
   frontend:
     build:
-      context: rmx_fe
+      context: frontend
     environment:
       BE_URL: "http://backend:8080"
-      SECRET_DIR: /app/secret
       PORT: 3000
     ports:
-      - 443:3000
-      - 80:3000
+      - 3000:3000
       - 3010:3010
     cpus: 1
     volumes:
-      - ./terraform/secret/:/app/secret/
-      - ./rmx_fe/app/:/app/app/
+      # - ./terraform/secret/:/app/secret/
+      - ./frontend/app/:/app/app/
     entrypoint:
       - /bin/sh
       - -c
