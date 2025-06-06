@@ -33,7 +33,6 @@ export async function action({ request }: ActionFunctionArgs) {
     body: JSON.stringify(user),
   });
   console.log(resp.status);
-  // TODO: Should move this to frontend with suspense.
   const session = await getSession(request.headers.get("Cookie"));
   switch (resp.status) {
     case 400: {
@@ -48,10 +47,12 @@ export async function action({ request }: ActionFunctionArgs) {
       return { msg: "Unexpected error." };
     }
     case 200: {
+      //
       const id: string = (await resp.json()).id;
       if (!id) {
         throw new Error("No userid returned from login endpoint.");
       }
+      //
       session.set("userId", id);
       const cookies = {
         headers: {
