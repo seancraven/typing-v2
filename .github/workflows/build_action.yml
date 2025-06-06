@@ -64,7 +64,7 @@ jobs:
           platforms: linux/arm64
           tags: |
             ghcr.io/${{ github.repository }}/frontend:latest
-          context: rmx_fe
+          context: frontend
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
