@@ -16,19 +16,20 @@ export async function action({ request }: ActionFunctionArgs) {
   if (!email) {
     throw new Error("Email shouldn't be nil.");
   }
-
   const user: User = {
     username: username.toString(),
     password: password.toString(),
     email: email.toString(),
   };
-  const resp = fetch(`${process.env.BE_URL}/register`, {
+  const resp = await fetch(`${process.env.BE_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user),
   });
-
-  return resp;
+  if (resp.status != 200) {
+    return { msg: await resp.text(), success: false };
+  }
+  return { msg: "Registration successful!", success: true };
 }
 
 export default function Register() {
