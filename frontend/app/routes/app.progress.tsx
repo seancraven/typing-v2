@@ -33,13 +33,13 @@ export default function TypingTest() {
 
   return (
     <div
-      className="container flex min-h-screen w-screen justify-center"
+      className="flex min-h-screen w-full justify-center"
       id="progress"
       ref={ref}
     >
-      <div className="mx-auto h-full w-full items-center text-3xl">
-        <div className="mx-auto h-[200px] w-2/3 items-center">
-          <div className="mx-auto flex w-[800px] items-center">
+      <div className="mx-auto h-full justify-center text-3xl">
+        <div className="mx-auto items-center justify-center">
+          <div className="mx-auto flex items-center">
             <Journey
               nameProgress={progJson.map(
                 ({ final_idx, progress, topic_id, lang, title }) => {

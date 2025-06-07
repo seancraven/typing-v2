@@ -21,15 +21,15 @@ export default function Journey({
   });
   nameProgress = nameProgress.slice(0, 3);
   return (
-    <div className="container flex w-full items-center p-6">
-      <div className="mx-auto grid h-20 w-full grid-cols-4 gap-4">
+    <div className="w-full justify-center p-6">
+      <div className="mx-auto grid h-20 w-[800px] grid-cols-4 gap-4">
         {nameProgress.map((item, index) => (
           <Link
             to={`/app/progress/${item.topic_id}/${item.final_idx}#progress`}
             key={index}
             className="w-min-64 mx-auto flex h-full w-full flex-col space-y-2 px-2"
           >
-            <div className="mt-auto rounded-md bg-gray-200 px-2 py-2 dark:bg-gray-800">
+            <div className="mt-auto w-[180px] rounded-md bg-gray-200 px-2 py-2 dark:bg-gray-800">
               <div className="flex justify-end text-sm">
                 <span className="mt-auto h-10 justify-start font-medium text-gray-800 dark:text-gray-200">
                   {item.topic}
@@ -51,7 +51,7 @@ export default function Journey({
           to={`/app/random#progress`}
           className="w-min-64 mx-auto flex h-full w-full flex-col space-y-2 px-2"
         >
-          <div className="mt-auto rounded-md bg-gray-200 px-2 py-2 dark:bg-gray-800">
+          <div className="mt-auto w-[180px] rounded-md bg-gray-200 px-2 py-2 dark:bg-gray-800">
             <div className="flex items-center justify-center text-sm">
               <span className="h-12 items-center justify-center font-medium text-gray-800 dark:text-gray-200">
                 New Random topic
