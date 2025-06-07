@@ -1,8 +1,6 @@
 import { Outlet } from "react-router";
 
-export function loader() {
-  return null;
-}
+export function loader() {}
 
 export default function Stats() {
   return (
