@@ -227,7 +227,7 @@ impl DB {
             .context("Get text failed due to:")
     }
     pub async fn user_length_pref(&self, user_id: Uuid) -> Result<usize> {
-        Ok(150)
+        Ok(300)
     }
     pub async fn random_topic(&self) -> Result<(i32, String)> {
         sqlx::query!(r#"SELECT id, topic FROM topics ORDER BY RANDOM() LIMIT 1"#)
