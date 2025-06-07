@@ -1,4 +1,11 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from "react-router";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useRouteError,
+} from "react-router";
 import type { LinksFunction } from "react-router";
 
 import stylesheet from "~/tailwind.css?url";
@@ -29,7 +36,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <div>
+    <div className="w-screen">
       <NavBar />
       <Outlet />
     </div>
