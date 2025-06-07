@@ -106,10 +106,11 @@ export default function TypingTest() {
 type TypingSpanState = {
   spans: JSX.Element[];
   position: number;
+  lineWidth: number;
   error: string[];
   keypressHistory: [string, number][];
-  max_view_index: number | undefined;
-  min_view_index: number;
+  maxViewIndex: number | undefined;
+  minViewIndex: number;
 };
 export function Typing(props: {
   text: string;
@@ -120,12 +121,19 @@ export function Typing(props: {
   const text = props.text;
   const postDataHandler = props.postDataHandler;
   const errors: string[] = new Array(text.length).fill("");
-  const spanned = new Array(text.length);
+  const spanned: JSX.Element[] = new Array(text.length);
+  const [lineWidth, setLineWidth] = useState(60);
+  useEffect(() => {
+    // Need to mount the text in a
+    // Use effect to fire on load,
+    // Then pick size and render.
+    setLineWidth(window.innerWidth > 768 ? 60 : 40);
+  });
 
   let lastNl = 0;
   let newLines = [];
   for (let i = 0; i < text.length; i++) {
-    [spanned[i], lastNl] = updateSpecialSpan(text, "", 0, lastNl, i);
+    [spanned[i], lastNl] = updateSpecialSpan(text, lineWidth, "", 0, lastNl, i);
     if (lastNl == i) {
       newLines.push(i);
     }
@@ -134,10 +142,11 @@ export function Typing(props: {
   const defaultSpanState = {
     spans: spanned,
     position: 0,
+    lineWidth: lineWidth,
     error: errors,
     keypressHistory: [],
-    min_view_index: 0,
-    max_view_index: newLines.at(VIEW_LINE_COUNT - 2),
+    minViewIndex: 0,
+    maxViewIndex: newLines.at(VIEW_LINE_COUNT - 2),
   };
   const [typingState, setTypingState] =
     useState<TypingSpanState>(defaultSpanState);
@@ -212,8 +221,8 @@ export function Typing(props: {
         <div className="mx-auto flex min-h-[500px] w-full justify-center leading-relaxed text-gray-200">
           <pre className="min-w-[800px] whitespace-pre-line">
             {typingState.spans.slice(
-              typingState.min_view_index,
-              typingState.max_view_index && typingState.max_view_index + 1,
+              typingState.minViewIndex,
+              typingState.maxViewIndex && typingState.maxViewIndex + 1,
             )}
           </pre>
         </div>
@@ -319,6 +328,7 @@ function handleKeypress(
     for (let i = 0; i < text.length; i++) {
       [state.spans[i], lastNl] = updateSpecialSpan(
         text,
+        state.lineWidth,
         state.error[i],
         Math.min(Math.max(state.position + delta, 0), text.length),
         lastNl,
@@ -331,14 +341,14 @@ function handleKeypress(
     // Manage Window
     for (let i = 0; i < newLines.length; i++) {
       if (newLines[i] > state.position) {
-        state.max_view_index = newLines.at(
+        state.maxViewIndex = newLines.at(
           Math.min(
             Math.max(i - NEGATIVE_VIEW_LINE_COUNT + VIEW_LINE_COUNT, 0),
             newLines.length,
           ),
         );
         // If you go past the end of the array stop moving the window.
-        if (state.max_view_index !== undefined) {
+        if (state.maxViewIndex !== undefined) {
           let start_pos = newLines.at(
             Math.max(i - NEGATIVE_VIEW_LINE_COUNT, 0),
           );
@@ -346,7 +356,7 @@ function handleKeypress(
             start_pos += 1;
           }
           console.log(start_pos);
-          state.min_view_index = start_pos ? start_pos : 0;
+          state.minViewIndex = start_pos ? start_pos : 0;
         }
         break;
       }
@@ -494,6 +504,7 @@ function Restart({
 }
 function updateSpecialSpan(
   text: string,
+  lineWidth: number,
   span_error: string,
   next_index: number,
   lastNewline: number,
@@ -502,7 +513,7 @@ function updateSpecialSpan(
   let [n_char, no_mut] = specialCharChar(text[i]);
   if (text[i] == "\n") {
     lastNewline = i;
-  } else if (i - lastNewline >= LINE_WIDTH && isWhitespace(text[i])) {
+  } else if (i - lastNewline >= lineWidth && isWhitespace(text[i])) {
     n_char += "\n";
     lastNewline = i;
   }
