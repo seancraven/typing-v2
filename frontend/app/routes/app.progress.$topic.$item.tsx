@@ -32,6 +32,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   } = await fetch(endpoint).then((r) =>
     r.status == 200 ? r.json() : { text: "text" },
   );
+  const firstNewLine = typingTest.text.indexOf("\n");
+  typingTest.text = typingTest.text.slice(firstNewLine + 1);
   return { typingTest, userId };
 }
 
@@ -126,7 +128,6 @@ export function Typing(props: {
   useEffect(() => {
     // Need to mount the text in a
     // Use effect to fire on load,
-    // Then pick size and render.
     setLineWidth(window.innerWidth > 768 ? 60 : 40);
   });
 
