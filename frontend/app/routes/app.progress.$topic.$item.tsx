@@ -1,9 +1,16 @@
-import { useFetcher, useLoaderData, useParams, useNavigate } from "react-router";
+import {
+  useFetcher,
+  useLoaderData,
+  useParams,
+  useNavigate,
+} from "react-router";
 import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from "react-router";
 import { getSession, getUserIdChecked } from "~/sessions";
 import { KeyboardEvent, useEffect, useState } from "react";
 
-const LINE_WIDTH = 60;
+const LINE_WIDTH = 80;
+const VIEW_LINE_COUNT = 10;
+const NEGATIVE_VIEW_LINE_COUNT = 3;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
@@ -83,11 +90,14 @@ export default function TypingTest() {
       loggedIn={Boolean(userId)}
       nextHandler={() => {
         if (typingTest.done) {
-          nav(`/app/progress/random`);
+          nav(`/app/progress/random#progress`);
         }
-        nav(`/app/progress/${typingTest.topic_id}/${typingTest.end_index}`, {
-          replace: true,
-        });
+        nav(
+          `/app/progress/${typingTest.topic_id}/${typingTest.end_index}#progress`,
+          {
+            replace: true,
+          },
+        );
       }}
     />
   );
@@ -98,6 +108,8 @@ type TypingSpanState = {
   position: number;
   error: string[];
   keypressHistory: [string, number][];
+  max_view_index: number | undefined;
+  min_view_index: number;
 };
 export function Typing(props: {
   text: string;
@@ -109,15 +121,23 @@ export function Typing(props: {
   const postDataHandler = props.postDataHandler;
   const errors: string[] = new Array(text.length).fill("");
   const spanned = new Array(text.length);
+
   let lastNl = 0;
+  let newLines = [];
   for (let i = 0; i < text.length; i++) {
     [spanned[i], lastNl] = updateSpecialSpan(text, "", 0, lastNl, i);
+    if (lastNl == i) {
+      newLines.push(i);
+    }
   }
+
   const defaultSpanState = {
     spans: spanned,
     position: 0,
     error: errors,
     keypressHistory: [],
+    min_view_index: 0,
+    max_view_index: newLines.at(VIEW_LINE_COUNT - 2),
   };
   const [typingState, setTypingState] =
     useState<TypingSpanState>(defaultSpanState);
@@ -176,7 +196,7 @@ export function Typing(props: {
   );
 
   return (
-    <div className="relative h-full w-full" id="typing">
+    <div className="h-full w-screen items-center justify-center" id="typing">
       {enabled ? null : (
         <div className="absolute left-1/2 top-1/2 z-10 h-full w-screen -translate-x-1/2 -translate-y-1/2">
           <div className="h-[130%] w-full backdrop-blur-lg backdrop-filter">
@@ -188,19 +208,22 @@ export function Typing(props: {
           </div>
         </div>
       )}
-      <div className="-z-0 h-full min-h-[400px] w-full items-center">
-        <div className="relative mx-auto min-h-[500px] w-full items-center justify-center pt-32 leading-relaxed text-gray-200">
-          <pre className="absolute left-1/2 top-4 min-w-[800px] -translate-x-1/2 items-center justify-center whitespace-pre-line">
-            {typingState.spans}
+      <div className="-z-0 h-full min-h-[400px] w-full items-center justify-center">
+        <div className="mx-auto flex min-h-[500px] w-full leading-relaxed text-gray-200">
+          <pre className="min-w-[800px] whitespace-pre-line">
+            {typingState.spans.slice(
+              typingState.min_view_index,
+              typingState.max_view_index && typingState.max_view_index + 1,
+            )}
           </pre>
         </div>
         <div
           id="timer"
-          className="container mx-auto flex min-h-[44px] justify-center text-gray-200"
+          className="mx-auto flex min-h-[44px] items-center justify-center text-gray-200"
         >
           {enabled ? timerState : "Paused"}
         </div>
-        <div className="container mx-auto h-2.5 max-w-[800px] justify-center rounded-full bg-gray-200 dark:bg-gray-700">
+        <div className="container mx-auto flex h-2.5 max-w-[800px] items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
           <div
             className="h-2.5 rounded-full bg-primary-800"
             style={{
@@ -209,18 +232,20 @@ export function Typing(props: {
           ></div>
         </div>
       </div>
-      <div className="flex h-full"></div>
     </div>
   );
 }
 function specialCharChar(char: string): [string, boolean] {
   if (char == " ") {
+    // Space
     return ["\u00B7", false];
   }
   if (char == "\n") {
+    // Newline
     return ["\u00B6\n", false];
   }
   if (char == "\t") {
+    // Tab
     return ["\u2192 ", false];
   }
   return [char, true];
@@ -270,43 +295,66 @@ function handleKeypress(
     handlePause();
     return;
   }
-  if (event.key == "Backspace") {
-    state.error[Math.max(state.position, 0)] = "";
-
+  if (
+    event.key == "Backspace" ||
+    event.key.length == 1 ||
+    event.key == "Enter" ||
+    event.key == "Tab"
+  ) {
+    let delta = 1;
+    // Manage Errors
+    if (event.key === "Backspace") {
+      state.error[Math.max(state.position, 0)] = "";
+      delta = -1;
+    } else {
+      state.error[state.position] = keypressCorrect(
+        text[state.position],
+        event.key,
+      );
+    }
+    // Manage Spans
     let lastNl = 0;
+    const newLines = [];
     for (let i = 0; i < text.length; i++) {
       [state.spans[i], lastNl] = updateSpecialSpan(
         text,
         state.error[i],
-        Math.max(state.position - 1, 0),
+        Math.min(Math.max(state.position + delta, 0), text.length),
         lastNl,
         i,
       );
+      if (i == lastNl) {
+        newLines.push(i);
+      }
     }
-    setState({
-      ...state,
-      position: Math.max(state.position - 1, 0),
-    });
-  }
-  if (event.key.length == 1 || event.key == "Enter" || event.key == "Tab") {
-    state.error[state.position] = keypressCorrect(
-      text[state.position],
-      event.key,
-    );
-    let lastNl = 0;
-    for (let i = 0; i < text.length; i++) {
-      [state.spans[i], lastNl] = updateSpecialSpan(
-        text,
-        state.error[i],
-        state.position + 1,
-        lastNl,
-        i,
-      );
+    // Manage Window
+    for (let i = 0; i < newLines.length; i++) {
+      if (newLines[i] > state.position) {
+        state.max_view_index = newLines.at(
+          Math.min(
+            Math.max(i - NEGATIVE_VIEW_LINE_COUNT + VIEW_LINE_COUNT, 0),
+            newLines.length,
+          ),
+        );
+        // If you go past the end of the array stop moving the window.
+        if (state.max_view_index !== undefined) {
+          let start_pos = newLines.at(
+            Math.max(i - NEGATIVE_VIEW_LINE_COUNT, 0),
+          );
+          if (start_pos && start_pos != 0) {
+            start_pos += 1;
+          }
+          console.log(start_pos);
+          state.min_view_index = start_pos ? start_pos : 0;
+        }
+        break;
+      }
     }
+    // Update State
     setState({
       ...state,
       keypressHistory: [...state.keypressHistory, [event.key, Date.now()]],
-      position: state.position + 1,
+      position: Math.min(Math.max(state.position + delta, 0), text.length),
     });
   }
   event.preventDefault();
