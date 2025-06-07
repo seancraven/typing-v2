@@ -157,4 +157,6 @@ fn main() {
 }
 ```
 Please remember any additional text shoud be placed in the code as comments.
-Your response must contain ```{language name} ``` And be correct markdown.
+Your response must contain ```{language name} ``` And be correct markdown. It is very 
+important that none of your code responses are more than 80 characters wide. You should also
+avoid adding too many comment strings.
