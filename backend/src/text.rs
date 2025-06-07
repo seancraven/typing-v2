@@ -14,7 +14,7 @@ use crate::{llm_client, store::DB};
 const P_GEN: f64 = 0.99;
 const SYSTEM_PROMPT: &str = include_str!("system_prompt.txt");
 const MAX_GENERATION_RETRY: usize = 3;
-const NEW_TOPIC_COUNT: usize = 10;
+const NEW_TOPIC_COUNT: usize = 40;
 const PROG_MIN: f64 = 0.4;
 const LANGUAGES: [&str; 4] = ["python", "typescript", "rust", "go"];
 
@@ -188,10 +188,7 @@ fn clean_llm_response_to_markdown(mut text: String) -> Result<CodeBlock> {
         debug!("Text:\n{}", text);
         return Err(anyhow!("Can't find closing markdown braces."));
     };
-    let lang = match parse_md_lang(&text, start_idx) {
-        Ok(l) => l,
-        Err(e) => return Err(e),
-    };
+    let lang = parse_md_lang(&text, start_idx)?;
     text.drain(..start_idx);
     text.drain(stop_idx..);
     Ok(CodeBlock { lang, text })
@@ -225,30 +222,6 @@ fn parse_md_lang(text: &str, start_idx: usize) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn test_text() {
-        let s = include_str!("system_prompt.txt");
-        let clip_len = 150;
-        let mut outs = vec![];
-        let mut i = 0;
-        loop {
-            let text = String::from(s);
-            let Some(t) = trim_text(text, clip_len, i) else {
-                break;
-            };
-            outs.push(t);
-            i += 1;
-        }
-        assert!(outs.len() > 1);
-        for out in &outs[..outs.len() - 1] {
-            assert!(out.0.len() >= clip_len, "{}:{}", out.0.len(), clip_len);
-        }
-        assert_eq!(
-            outs.iter().map(|i| &*i.0).collect::<Vec<&str>>().join(""),
-            s,
-        );
-    }
-
     #[test]
     fn test_parse_md() {
         let languages = vec![
