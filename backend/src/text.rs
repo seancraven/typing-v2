@@ -16,22 +16,7 @@ const SYSTEM_PROMPT: &str = include_str!("system_prompt.txt");
 const MAX_GENERATION_RETRY: usize = 3;
 const NEW_TOPIC_COUNT: usize = 10;
 const PROG_MIN: f64 = 0.4;
-const LANGUAGES: [&str; 14] = [
-    "python",
-    "javascript",
-    "java",
-    "cpp",
-    "ruby",
-    "sql",
-    "html",
-    "css",
-    "typescript",
-    "swift",
-    "php",
-    "rust",
-    "kotlin",
-    "go",
-];
+const LANGUAGES: [&str; 4] = ["python", "typescript", "rust", "go"];
 
 #[derive(Serialize)]
 pub struct TypingState {
@@ -92,26 +77,7 @@ fn get_next_chonk(
     text.drain(len + offset..);
     Some((text, start_idx, start_idx + len + offset))
 }
-fn trim_text(mut text: String, len: usize, idx: usize) -> Option<(String, f32)> {
-    let mut chunks = vec![];
-    let mut chunk_start: usize = 0;
-    for (i, char) in text.chars().enumerate() {
-        if i - chunk_start <= len {
-            continue;
-        }
-        if char == '\n' || char == '\t' || char == ' ' {
-            chunks.push((chunk_start, i));
-            chunk_start = i
-        }
-    }
-    let olen = text.len() as f32;
-    chunks.push((chunk_start, text.len()));
-    let item = chunks.get(idx)?;
-    text.drain(item.1..);
-    text.drain(..item.0);
-    let prog = item.1 as f32 / olen;
-    Some((text, prog.clamp(0.0, 1.0)))
-}
+
 pub async fn loop_body(db: &DB, client: &awc::Client) -> Result<()> {
     let progress = db.max_progress_by_topic().await?;
     let (sum, len): (f64, f64) = progress
