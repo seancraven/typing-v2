@@ -1,7 +1,8 @@
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import { Outlet, useLoaderData } from "react-router";
 import { LoaderFunctionArgs } from "react-router";
 import { getSession, getUserIdChecked } from "~/sessions";
 import Journey from "~/components/journey";
+import { useEffect, useRef } from "react";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
@@ -23,12 +24,22 @@ export default function TypingTest() {
     topic_id: number;
     title: string;
   }[] = useLoaderData();
+  const ref = useRef(null);
+  useEffect(() => {
+    document
+      .getElementById("progress")
+      ?.scrollTo({ top: 0, behavior: "smooth" });
+  });
 
   return (
-    <div className="relative h-full w-full justify-center" id="progress">
+    <div
+      className="container flex min-h-screen w-screen justify-center"
+      id="progress"
+      ref={ref}
+    >
       <div className="mx-auto h-full w-full items-center text-3xl">
-        <div className="w-min-[800px] w-max-[1600px] mx-auto grid h-[200px] w-2/3 grid-cols-1 items-center">
-          <div className="col-span-1 mx-auto w-[800px]">
+        <div className="mx-auto h-[200px] w-2/3 items-center">
+          <div className="mx-auto flex w-[800px] items-center">
             <Journey
               nameProgress={progJson.map(
                 ({ final_idx, progress, topic_id, lang, title }) => {
@@ -42,9 +53,7 @@ export default function TypingTest() {
               )}
             />
           </div>
-          <div className="col-span-1 flex">
-            <Outlet />
-          </div>
+          <Outlet />
         </div>
       </div>
     </div>
