@@ -8,7 +8,7 @@ import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from "react-router";
 import { getSession, getUserIdChecked } from "~/sessions";
 import { KeyboardEvent, useEffect, useState } from "react";
 
-const LINE_WIDTH = 80;
+const LINE_WIDTH = 60;
 const VIEW_LINE_COUNT = 10;
 const NEGATIVE_VIEW_LINE_COUNT = 3;
 
@@ -196,7 +196,7 @@ export function Typing(props: {
   );
 
   return (
-    <div className="h-full w-screen items-center justify-center" id="typing">
+    <div className="relative h-full w-screen" id="typing">
       {enabled ? null : (
         <div className="absolute left-1/2 top-1/2 z-10 h-full w-screen -translate-x-1/2 -translate-y-1/2">
           <div className="h-[130%] w-full backdrop-blur-lg backdrop-filter">
@@ -208,8 +208,8 @@ export function Typing(props: {
           </div>
         </div>
       )}
-      <div className="-z-0 h-full min-h-[400px] w-full items-center justify-center">
-        <div className="mx-auto flex min-h-[500px] w-full leading-relaxed text-gray-200">
+      <div className="-z-0 h-full w-full items-center justify-center">
+        <div className="mx-auto flex min-h-[500px] w-full justify-center leading-relaxed text-gray-200">
           <pre className="min-w-[800px] whitespace-pre-line">
             {typingState.spans.slice(
               typingState.min_view_index,
@@ -219,19 +219,20 @@ export function Typing(props: {
         </div>
         <div
           id="timer"
-          className="mx-auto flex min-h-[44px] items-center justify-center text-gray-200"
+          className="container mx-auto flex min-h-[44px] justify-center text-gray-200"
         >
           {enabled ? timerState : "Paused"}
         </div>
-        <div className="container mx-auto flex h-2.5 max-w-[800px] items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
+        <div className="container mx-auto h-2.5 max-w-[800px] justify-center rounded-full bg-gray-200 dark:bg-gray-700">
           <div
-            className="h-2.5 rounded-full bg-primary-800"
+            className="h-2.5 justify-start rounded-full bg-primary-800"
             style={{
               width: `${prog}%`,
             }}
           ></div>
         </div>
       </div>
+      <div className="flex h-full pb-10"></div>
     </div>
   );
 }
