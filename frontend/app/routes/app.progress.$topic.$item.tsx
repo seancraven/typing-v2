@@ -9,7 +9,6 @@ import { getSession, getUserIdChecked } from "~/sessions";
 import { KeyboardEvent, useEffect, useState } from "react";
 
 const VIEW_LINE_COUNT = 10;
-const NEGATIVE_VIEW_LINE_COUNT = 3;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
@@ -135,12 +134,7 @@ export function Typing(props: {
     }
   }
   newLines.push(text.length);
-  let maxViewIndex = newLines.at(
-    Math.min(
-      Math.max(0 - NEGATIVE_VIEW_LINE_COUNT + 1 + VIEW_LINE_COUNT, 0),
-      newLines.length - 1,
-    ),
-  );
+  let maxViewIndex = newLines.at(VIEW_LINE_COUNT);
 
   const defaultSpanState = {
     spans: spanned,
@@ -355,18 +349,17 @@ function handleKeypress(
       // a constant number of newlines in the view
       // Then the question is just start + end.
       if (newLines[i] > state.position) {
-        state.maxViewIndex = newLines.at(
-          Math.max(i - NEGATIVE_VIEW_LINE_COUNT + VIEW_LINE_COUNT, 0),
-        );
+        const padding = 3;
+        const start_index = Math.max(i - padding, 0);
+        const end_index = start_index + VIEW_LINE_COUNT;
+        state.maxViewIndex = newLines.at(end_index);
+
         // If you go past the end of the array stop moving the window.
         if (state.maxViewIndex !== undefined) {
-          let start_pos = newLines.at(
-            Math.max(i - NEGATIVE_VIEW_LINE_COUNT, 0),
-          );
+          let start_pos = newLines.at(start_index);
           if (start_pos && start_pos != 0) {
             start_pos += 1;
           }
-          console.log(start_pos);
           state.minViewIndex = start_pos ? start_pos : 0;
         }
         break;
