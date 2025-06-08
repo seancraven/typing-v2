@@ -194,6 +194,7 @@ impl DB {
         });
         Ok(query_rows)
     }
+    // Lol should not plain text password.
     pub async fn verify_user(&self, user: User) -> std::result::Result<uuid::Uuid, LoginErr> {
         let row = sqlx::query!(
             r#"SELECT id, user_password FROM users WHERE username = $1"#,

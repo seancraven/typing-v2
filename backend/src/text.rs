@@ -11,7 +11,6 @@ use uuid::Uuid;
 
 use crate::{llm_client, store::DB};
 
-const P_GEN: f64 = 0.99;
 const SYSTEM_PROMPT: &str = include_str!("system_prompt.txt");
 const MAX_GENERATION_RETRY: usize = 3;
 const NEW_TOPIC_COUNT: usize = 40;
