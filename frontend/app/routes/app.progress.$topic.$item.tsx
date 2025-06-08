@@ -320,6 +320,14 @@ function handleKeypress(
     if (event.key === "Backspace") {
       state.error[Math.max(state.position, 0)] = "";
       delta = -1;
+    } else if (
+      event.key === "Tab" &&
+      text.slice(state.position, state.position + 4) === "    "
+    ) {
+      for (let i = state.position; i < state.position + 4; i++) {
+        state.error[i] = keypressCorrect(text[i], " ");
+      }
+      delta = 4;
     } else {
       state.error[state.position] = keypressCorrect(
         text[state.position],
