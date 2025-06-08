@@ -218,10 +218,6 @@ export function Typing(props: {
         </div>
       )}
       <div className="-z-0 h-full w-full items-center justify-center">
-        <div>
-          Slice Range {typingState.minViewIndex}:{typingState.maxViewIndex}
-        </div>
-        <div>NewLines {newLines.join(", ")}</div>
         <div className="mx-auto flex min-h-[500px] w-full justify-center leading-relaxed text-gray-200">
           <pre className="min-w-[800px] whitespace-pre-line">
             {typingState.spans.slice(
