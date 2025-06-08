@@ -8,9 +8,7 @@ import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from "react-router";
 import { getSession, getUserIdChecked } from "~/sessions";
 import { KeyboardEvent, useEffect, useState } from "react";
 
-const LINE_WIDTH = 60;
 const VIEW_LINE_COUNT = 10;
-const NEGATIVE_VIEW_LINE_COUNT = 3;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
@@ -34,6 +32,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   );
   const firstNewLine = typingTest.text.indexOf("\n");
   typingTest.text = typingTest.text.slice(firstNewLine + 1);
+  console.log(typingTest.text.length);
   return { typingTest, userId };
 }
 
@@ -125,11 +124,6 @@ export function Typing(props: {
   const errors: string[] = new Array(text.length).fill("");
   const spanned: JSX.Element[] = new Array(text.length);
   const [lineWidth, setLineWidth] = useState(60);
-  useEffect(() => {
-    // Need to mount the text in a
-    // Use effect to fire on load,
-    setLineWidth(window.innerWidth > 768 ? 60 : 40);
-  });
 
   let lastNl = 0;
   let newLines = [];
@@ -139,6 +133,8 @@ export function Typing(props: {
       newLines.push(i);
     }
   }
+  newLines.push(text.length);
+  let maxViewIndex = newLines.at(VIEW_LINE_COUNT);
 
   const defaultSpanState = {
     spans: spanned,
@@ -147,7 +143,7 @@ export function Typing(props: {
     error: errors,
     keypressHistory: [],
     minViewIndex: 0,
-    maxViewIndex: newLines.at(VIEW_LINE_COUNT - 2),
+    maxViewIndex: maxViewIndex,
   };
   const [typingState, setTypingState] =
     useState<TypingSpanState>(defaultSpanState);
@@ -203,6 +199,9 @@ export function Typing(props: {
   const prog = Math.max(
     Math.min((typingState.position * 100) / text.length, 100),
     0,
+  );
+  console.log(
+    `Span start idx ${typingState.minViewIndex}:${typingState.maxViewIndex}`,
   );
 
   return (
@@ -317,6 +316,14 @@ function handleKeypress(
     if (event.key === "Backspace") {
       state.error[Math.max(state.position, 0)] = "";
       delta = -1;
+    } else if (
+      event.key === "Tab" &&
+      text.slice(state.position, state.position + 4) === "    "
+    ) {
+      for (let i = state.position; i < state.position + 4; i++) {
+        state.error[i] = keypressCorrect(text[i], " ");
+      }
+      delta = 4;
     } else {
       state.error[state.position] = keypressCorrect(
         text[state.position],
@@ -339,24 +346,24 @@ function handleKeypress(
         newLines.push(i);
       }
     }
+    newLines.push(text.length);
     // Manage Window
     for (let i = 0; i < newLines.length; i++) {
+      // I think the better way to encode this is
+      // a constant number of newlines in the view
+      // Then the question is just start + end.
       if (newLines[i] > state.position) {
-        state.maxViewIndex = newLines.at(
-          Math.min(
-            Math.max(i - NEGATIVE_VIEW_LINE_COUNT + VIEW_LINE_COUNT, 0),
-            newLines.length,
-          ),
-        );
+        const padding = 3;
+        const start_index = Math.max(i - padding, 0);
+        const end_index = start_index + VIEW_LINE_COUNT;
+        state.maxViewIndex = newLines.at(end_index);
+
         // If you go past the end of the array stop moving the window.
         if (state.maxViewIndex !== undefined) {
-          let start_pos = newLines.at(
-            Math.max(i - NEGATIVE_VIEW_LINE_COUNT, 0),
-          );
+          let start_pos = newLines.at(start_index);
           if (start_pos && start_pos != 0) {
             start_pos += 1;
           }
-          console.log(start_pos);
           state.minViewIndex = start_pos ? start_pos : 0;
         }
         break;
@@ -365,6 +372,8 @@ function handleKeypress(
     // Update State
     setState({
       ...state,
+      minViewIndex: state.minViewIndex,
+      maxViewIndex: state.maxViewIndex,
       keypressHistory: [...state.keypressHistory, [event.key, Date.now()]],
       position: Math.min(Math.max(state.position + delta, 0), text.length),
     });
