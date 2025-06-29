@@ -1,7 +1,13 @@
-import { createCookieSessionStorage, redirect, Session, SessionStorage } from "react-router"; // or cloudflare/deno
+import {
+  createCookieSessionStorage,
+  redirect,
+  Session,
+  SessionStorage,
+} from "react-router"; // or cloudflare/deno
 
 export type SessionData = {
   userId: string;
+  userName: string;
   topic: string;
   item: string;
 };
@@ -22,13 +28,18 @@ const { getSession, commitSession, destroySession } =
 
 export { getSession, commitSession, destroySession };
 
+export async function getCookieSession(request: Request) {
+  return getSession(request.headers.get("Cookie"));
+}
+
 // Handle unlogged in fuckers, by routing to login page.
 export function getUserIdChecked(
   session: Session<SessionData, SessionFlashData>,
 ) {
   const userId = session.get("userId");
   if (!userId) {
-    throw redirect("/app/login");
+    console.debug("Throw redirect as no id");
+    throw redirect("/login");
   }
   return userId;
 }

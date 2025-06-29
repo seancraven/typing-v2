@@ -3,8 +3,11 @@ import {
   useLoaderData,
   useParams,
   useNavigate,
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  redirect,
+  useRouteLoaderData,
 } from "react-router";
-import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from "react-router";
 import { getSession, getUserIdChecked } from "~/sessions";
 import { KeyboardEvent, useEffect, useState } from "react";
 
@@ -32,7 +35,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   );
   const firstNewLine = typingTest.text.indexOf("\n");
   typingTest.text = typingTest.text.slice(firstNewLine + 1);
-  console.log(typingTest.text.length);
   return { typingTest, userId };
 }
 
@@ -43,7 +45,6 @@ export async function action({ request }: ActionFunctionArgs) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(json),
   });
-  console.log(resp);
   return null;
 }
 type UserData = {
@@ -91,14 +92,11 @@ export default function TypingTest() {
       loggedIn={Boolean(userId)}
       nextHandler={() => {
         if (typingTest.done) {
-          nav(`/app/progress/random#progress`);
+          nav(`/app/progress/random`);
         }
-        nav(
-          `/app/progress/${typingTest.topic_id}/${typingTest.end_index}#progress`,
-          {
-            replace: true,
-          },
-        );
+        nav(`/app/progress/${typingTest.topic_id}/${typingTest.end_index}`, {
+          replace: true,
+        });
       }}
     />
   );
@@ -126,7 +124,7 @@ export function Typing(props: {
   const [lineWidth, setLineWidth] = useState(60);
 
   let lastNl = 0;
-  let newLines = [];
+  const newLines = [];
   for (let i = 0; i < text.length; i++) {
     [spanned[i], lastNl] = updateSpecialSpan(text, lineWidth, "", 0, lastNl, i);
     if (lastNl == i) {
@@ -134,7 +132,7 @@ export function Typing(props: {
     }
   }
   newLines.push(text.length);
-  let maxViewIndex = newLines.at(VIEW_LINE_COUNT);
+  const maxViewIndex = newLines.at(VIEW_LINE_COUNT);
 
   const defaultSpanState = {
     spans: spanned,
@@ -200,15 +198,15 @@ export function Typing(props: {
     Math.min((typingState.position * 100) / text.length, 100),
     0,
   );
-  console.log(
-    `Span start idx ${typingState.minViewIndex}:${typingState.maxViewIndex}`,
-  );
 
   return (
-    <div className="relative h-full w-screen" id="typing">
+    <div
+      className="h-full w-full items-center justify-center rounded bg-primary/5"
+      id="typing"
+    >
       {enabled ? null : (
-        <div className="absolute left-1/2 top-1/2 z-10 h-full w-screen -translate-x-1/2 -translate-y-1/2">
-          <div className="h-[130%] w-full backdrop-blur-lg backdrop-filter">
+        <div className="absolute left-1/2 top-1/2 z-10 h-full w-full -translate-x-1/2 -translate-y-1/2">
+          <div className="h-full w-full backdrop-blur-lg backdrop-filter">
             {complete ? (
               <Restart handleNext={nextHandler} handleRestart={resetHandler} />
             ) : (
@@ -217,31 +215,29 @@ export function Typing(props: {
           </div>
         </div>
       )}
-      <div className="-z-0 h-full w-full items-center justify-center">
-        <div className="mx-auto flex min-h-[500px] w-full justify-center leading-relaxed text-gray-200">
-          <pre className="min-w-[800px] whitespace-pre-line">
-            {typingState.spans.slice(
-              typingState.minViewIndex,
-              typingState.maxViewIndex && typingState.maxViewIndex + 1,
-            )}
-          </pre>
-        </div>
+      <div className="container -z-0 mx-auto h-full w-full items-center justify-center p-10 text-3xl">
+        <pre className="items-start whitespace-pre-line text-start transition-all duration-300 ease-in-out">
+          {typingState.spans.slice(
+            typingState.minViewIndex,
+            typingState.maxViewIndex && typingState.maxViewIndex + 1,
+          )}
+        </pre>
         <div
           id="timer"
-          className="container mx-auto flex min-h-[44px] justify-center text-gray-200"
+          className="container mx-auto flex min-h-[44px] justify-center"
         >
           {enabled ? timerState : "Paused"}
         </div>
-        <div className="container mx-auto h-2.5 max-w-[800px] justify-center rounded-full bg-gray-200 dark:bg-gray-700">
+        <div className="container mx-auto h-2.5 max-w-[800px] justify-center rounded-full bg-muted-foreground">
           <div
-            className="h-2.5 justify-start rounded-full bg-primary-800"
+            className="h-2.5 justify-start rounded-full bg-primary"
             style={{
               width: `${prog}%`,
             }}
           ></div>
         </div>
       </div>
-      <div className="flex h-full pb-10"></div>
+      <div className="pb-10"></div>
     </div>
   );
 }
@@ -418,7 +414,7 @@ function Pause({ handleResume }: { handleResume: () => void }) {
   return (
     <div className="container mx-auto flex h-2/3 w-full items-center justify-center">
       <button
-        className="flex items-center rounded-xl fill-primary-500 stroke-primary-500 font-bold text-gray-600 hover:bg-primary-600 hover:fill-black hover:stroke-black hover:text-black"
+        className="flex items-center rounded-xl fill-primary stroke-primary font-bold hover:bg-primary hover:fill-black hover:stroke-black"
         onClick={handleResume}
       >
         <div>
@@ -464,7 +460,7 @@ function Restart({
     <div className="container mx-auto flex h-2/3 w-1/2 items-center justify-center">
       <div className="flex px-5">
         <button
-          className="container flex items-center rounded-xl fill-primary-500 stroke-primary-500 font-bold text-gray-600 hover:bg-primary-600 hover:fill-black hover:stroke-black hover:text-black"
+          className="container flex items-center rounded-xl fill-primary stroke-primary font-bold hover:bg-primary hover:fill-black hover:stroke-black"
           onClick={handleRestart}
           onKeyDown={(e) => {}}
         >
@@ -484,7 +480,7 @@ function Restart({
       </div>
       <div>
         <button
-          className="flex items-center rounded-xl fill-transparent stroke-primary-500 font-bold text-gray-600 hover:bg-primary-600 hover:fill-primary-600 hover:stroke-black hover:text-black"
+          className="flex items-center rounded-xl fill-transparent stroke-primary font-bold hover:bg-primary hover:fill-primary hover:stroke-black"
           onClick={handleNext}
           onKeyDown={(e) => {
             if (e.key == "Enter") {
@@ -557,28 +553,15 @@ function updateSpecialSpan(
 function isWhitespace(char: string) {
   return char == " " || char == "\n" || char == "\t";
 }
-export function CatchBoundary() {
-  const caught = useParams();
-  return (
-    <div>
-      <h1>Caught</h1>
-      <p>Status: {caught.status}</p>
-      <pre>
-        <code>{JSON.stringify(caught.data, null, 2)}</code>
-      </pre>
-    </div>
-  );
-}
-
 // No colour
-const no_col = "dark:text-gray-200 text-gray-800";
-const no_col_mut = "dark:text-gray-800 text-gray-200";
+const no_col = "";
+const no_col_mut = "text-muted-foreground";
 // Right color
-const right_col = "dark:text-gray-400 text-gray-600";
-const right_col_mut = "dark:text-gray-800 text-gray-200";
+const right_col = "text-muted-foreground";
+const right_col_mut = "text-muted-foreground";
 // Wrong color
-const wrong_col = "bg-red-800 text-gray-200 rounded";
-const wrong_col_mut = "bg-red-800 text-gray-500 rounded";
+const wrong_col = "bg-red-800 rounded";
+const wrong_col_mut = "bg-red-800 rounded";
 // Next Color
-const next_col = "bg-primary-800 text-gray-200 rounded";
-const next_col_mut = "bg-primary-800 text-gray-500 rounded";
+const next_col = "bg-primary rounded";
+const next_col_mut = "bg-primary rounded";

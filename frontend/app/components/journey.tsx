@@ -1,4 +1,5 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { Button } from "~/components/ui/button";
 
 export default function Journey({
   nameProgress,
@@ -19,46 +20,51 @@ export default function Journey({
       return 1;
     }
   });
-  nameProgress = nameProgress.slice(0, 4);
+  nameProgress = nameProgress.filter((v) => v.progress !== 1);
+  nameProgress = nameProgress.slice(0, 5);
+  const navigate = useNavigate();
   return (
-    <div className="mx-auto flex items-center p-6">
-      <div className="xlg:grid-cols-5 mx-auto grid h-20 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div className="mx-auto pb-6 pt-6">
+      <div className="xlg:grid-cols-6 mx-auto grid gap-4 sm:grid-cols-1 md:grid-cols-4 lg:grid-cols-5">
         {nameProgress.map((item, index) => (
-          <Link
-            to={`/app/progress/${item.topic_id}/${item.final_idx}#progress`}
+          <Button
+            variant="outline"
+            onClick={() =>
+              navigate(`/app/progress/${item.topic_id}/${item.final_idx}`)
+            }
             key={index}
-            className={`h-full w-full flex-col space-y-2 px-2 ${index == 1 && "hidden md:block"} ${index == 2 && "hidden lg:block"} ${index == 3 && "xlg:block hidden"}`}
+            className={`min-h-20 w-full flex-col space-y-2 p-4 ${index == 0 && "hidden sm:block"} ${index == 1 && "hidden md:block"} ${index == 2 && "hidden lg:block"} ${index == 3 && "xlg:block hidden"}`}
+            title={item.topic}
           >
-            <div className="mt-auto w-[180px] rounded-md bg-gray-200 px-2 py-2 dark:bg-gray-800">
-              <div className="flex justify-end text-sm">
-                <span className="mt-auto h-10 justify-start font-medium text-gray-800 dark:text-gray-200">
+            <div className="w-full rounded-md">
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <div className="line-clamp-2 flex-1 text-left font-medium">
                   {item.topic}
-                </span>
-                <span className="ml-auto justify-end text-gray-800 dark:text-gray-200">
+                </div>
+                <div className="ml-2 text-right">
                   {(item.progress * 100).toFixed(0)}%
-                </span>
+                </div>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-900">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
                 <div
-                  className="h-full rounded-full bg-blue-500 transition-all duration-300 ease-in-out"
+                  className="h-full rounded-full bg-primary transition-all duration-300 ease-in-out"
                   style={{ width: `${(item.progress * 100).toFixed(1)}%` }}
                 />
               </div>
             </div>
-          </Link>
+          </Button>
         ))}
-        <Link
-          to={`/app/random#progress`}
-          className="h-full w-full flex-col space-y-2 px-2"
+        <Button
+          variant="outline"
+          onClick={() => navigate(`/app/random`)}
+          className="min-h-20 w-full flex-col justify-center p-4"
         >
-          <div className="mt-auto w-[180px] rounded-md bg-gray-200 px-2 py-2 dark:bg-gray-800">
+          <div className="w-full rounded-md">
             <div className="flex items-center justify-center text-sm">
-              <span className="h-12 items-center justify-center font-medium text-gray-800 dark:text-gray-200">
-                New Random topic
-              </span>
+              <span className="text-center font-medium">New Random Topic</span>
             </div>
           </div>
-        </Link>
+        </Button>
       </div>
     </div>
   );
