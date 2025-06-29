@@ -11,7 +11,7 @@ use awc::{Client, Connector};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{io::Read, sync::Arc, time::Duration};
+use std::{collections::HashSet, io::Read, sync::Arc, time::Duration};
 use store::{LoginErr, DB};
 use text::{text_for_typing, text_generation};
 use uuid::Uuid;
@@ -46,11 +46,15 @@ async fn main() {
                 .service(get_text)
                 .service(get_random_topic)
                 .service(get_progress)
+                .service(get_topics)
                 .service(login)
                 .service(register)
                 .service(check_health)
                 .service(data_handler)
                 .service(stats_handler)
+                .service(lang_get_handler)
+                .service(lang_set_handler)
+                .service(inget_handler)
         })
         .bind("0.0.0.0:8080")
         .unwrap()
@@ -166,6 +170,37 @@ async fn stats_handler(state: web::Data<DB>, user_id: web::Path<String>) -> Resu
     })?;
     Ok(HttpResponse::Ok().json(d.collect::<Vec<_>>()))
 }
+#[get("/{user_id}/lang")]
+async fn lang_get_handler(
+    state: web::Data<DB>,
+    user_id: web::Path<String>,
+) -> Result<impl Responder> {
+    let user_id: Uuid = user_id.parse().map_err(ErrorUnprocessableEntity)?;
+    let d = state.get_user_langs(user_id).await.map_err(|e| {
+        error!("Getting lang failed id:{}:{}.", user_id, e);
+        ErrorInternalServerError(e)
+    })?;
+    let response = json!( {"user_langs":d.iter().map(|l| l.to_string()).collect::<Vec<_>>(), "langs": text::LANGUAGES.to_vec()});
+    Ok(HttpResponse::Ok().json(response))
+}
+#[post("/{user_id}/lang")]
+async fn lang_set_handler(
+    state: web::Data<DB>,
+    user_id: web::Path<String>,
+    body: Json<Vec<String>>,
+) -> Result<impl Responder> {
+    let user_id: Uuid = user_id.parse().map_err(ErrorUnprocessableEntity)?;
+    let langs = body
+        .iter()
+        .map(|s| s.as_str().try_into())
+        .collect::<Result<HashSet<text::Lang>, _>>()
+        .map_err(ErrorUnprocessableEntity)?;
+    state.set_langs(user_id, langs).await.map_err(|e| {
+        error!("Setting lang failed id:{}:{}.", user_id, e);
+        ErrorInternalServerError(e)
+    })?;
+    Ok(HttpResponse::Ok().finish())
+}
 
 #[derive(Debug, Serialize)]
 struct TopicProgress {
@@ -174,6 +209,20 @@ struct TopicProgress {
     final_idx: usize,
     lang: String,
     title: String,
+}
+#[derive(Debug, Serialize)]
+struct TopicData {
+    lang: String,
+    topics: Vec<(i32, String)>,
+}
+#[get("/topics")]
+async fn get_topics(state: web::Data<DB>) -> actix_web::Result<impl Responder> {
+    let topics = state.get_topics().await.map_err(|e| {
+        error!("Getting topics failed {}.", e);
+        ErrorInternalServerError(e)
+    })?;
+    let response = json!( {"topics": topics});
+    Ok(HttpResponse::Ok().json(response))
 }
 #[get("/{user_id}/progress")]
 async fn get_progress(

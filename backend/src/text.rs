@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use actix_web::web;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use awc::{Client, Connector};
 use log::{debug, error, info, warn};
 use rand::Rng;
@@ -16,7 +16,64 @@ const SYSTEM_PROMPT: &str = include_str!("system_prompt.txt");
 const MAX_GENERATION_RETRY: usize = 3;
 const NEW_TOPIC_COUNT: usize = 40;
 const PROG_MIN: f64 = 0.4;
-const LANGUAGES: [&str; 4] = ["python", "typescript", "rust", "go"];
+pub const LANGUAGES: [&str; 4] = ["python", "typescript", "rust", "go"];
+#[repr(u8)]
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum Lang {
+    Python = 1,
+    TypeScript = 2,
+    Rust = 3,
+    Go = 4,
+}
+impl From<Lang> for u8 {
+    fn from(value: Lang) -> Self {
+        value as u8
+    }
+}
+impl Lang {
+    fn len(&self) -> usize {
+        4
+    }
+}
+impl TryFrom<u8> for Lang {
+    type Error = Error;
+    fn try_from(value: u8) -> std::result::Result<Self, Self::Error> {
+        Ok(match value {
+            1 => Lang::Python,
+            2 => Lang::TypeScript,
+            3 => Lang::Rust,
+            4 => Lang::Go,
+            _ => Err(anyhow!("Invalid integer to language map."))?,
+        })
+    }
+}
+impl ToString for Lang {
+    fn to_string(&self) -> String {
+        match self {
+            Lang::Python => "python".to_string(),
+            Lang::Go => "go".to_string(),
+            Lang::Rust => "rust".to_string(),
+            Lang::TypeScript => "typescript".to_string(),
+        }
+    }
+}
+impl TryFrom<&str> for Lang {
+    type Error = Error;
+    fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
+        let s = value.to_lowercase();
+        Ok(match s.as_str() {
+            "python" => Lang::Python,
+            "typescript" => Lang::TypeScript,
+            "rust" => Lang::Rust,
+            "go" => Lang::Go,
+            _ => Err(anyhow!(
+                "Invalid language, got {} expected {}",
+                value,
+                LANGUAGES.join(", ")
+            ))?,
+        })
+    }
+}
 
 #[derive(Serialize)]
 pub struct TypingState {

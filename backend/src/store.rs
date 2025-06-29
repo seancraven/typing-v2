@@ -1,13 +1,13 @@
 use std::{path::PathBuf, str::FromStr};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Error, Result};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::fs::File;
 use uuid::Uuid;
 
-use crate::UserData;
+use crate::{text::Lang, TopicData, UserData};
 
 // Currently DB stores all text not bad.
 pub struct DB {
@@ -21,17 +21,30 @@ impl DB {
         };
         let path = PathBuf::from_str(filename).expect("Path should be valid");
         let fname = path.to_str().unwrap();
-
         if !path.exists() {
             info!("Making database file {}", fname);
             File::create(&path).expect("File failed to create.");
         }
         info!("Connecting to database at {}:{}", fname, url);
-        DB {
+
+        let db = DB {
             pool: sqlx::SqlitePool::connect(url)
                 .await
                 .expect("can't connect to db"),
+        };
+        sqlx::migrate!().run(&db.pool).await.unwrap();
+        for i in 1..5 {
+            let l = Lang::try_from(i).unwrap().to_string();
+            sqlx::query!(
+                "INSERT INTO langauges (id, lang) VALUES ($1, $2) ON CONFLICT DO NOTHING;",
+                i,
+                l
+            )
+            .execute(&db.pool)
+            .await
+            .unwrap();
         }
+        db
     }
 }
 #[derive(Debug, Deserialize)]
@@ -78,19 +91,28 @@ pub struct TypingInfo {
     error_rate: f64,
     title: String,
     lang: String,
+    type_time_s: f64,
+    start_idx: usize,
+    end_idx: usize,
+    topic_id: usize,
 }
 
 impl DB {
     pub async fn add_topic(&self, topic: &str, body: &str, lang: &str, title: &str) -> Result<i64> {
         let len = body.len() as i32;
+        Lang::try_from(lang)?;
+        let lang_key = sqlx::query_scalar!(r#"SELECT id FROM langauges where lang = $1;"#, lang)
+            .fetch_one(&self.pool)
+            .await?;
+
         sqlx::query_scalar!(
             r#"INSERT INTO topics
-            (topic, topic_text, text_len, lang, title)
+            (topic, topic_text, text_len, lang_id, title)
             VALUES ($1, $2, $3, $4, $5) RETURNING id;"#,
             topic,
             body,
             len,
-            lang,
+            lang_key,
             title,
         )
         .fetch_one(&self.pool)
@@ -162,12 +184,60 @@ impl DB {
             Uuid::parse_str(&id).context("Parsing UUID string returned from DB failed:")?;
         Ok(new_id_back)
     }
+    pub async fn set_langs(
+        &self,
+        user_id: Uuid,
+        langs: impl IntoIterator<Item = Lang>,
+    ) -> Result<()> {
+        sqlx::query!(r#"DELETE FROM user_languages WHERE user_id = ?1"#, user_id)
+            .execute(&self.pool)
+            .await?;
+        for lang in langs {
+            let lang_id = u8::from(lang);
+            sqlx::query!(
+                r#"INSERT INTO user_languages (user_id, lang_id) VALUES (?1, ?2)"#,
+                user_id,
+                lang_id,
+            )
+            .execute(&self.pool)
+            .await?;
+        }
+        Ok(())
+    }
+    pub async fn get_user_langs(&self, user_id: Uuid) -> Result<Vec<Lang>> {
+        sqlx::query!(
+            r#"SELECT lang_id FROM user_languages WHERE user_id = ?1"#,
+            user_id
+        )
+        .fetch_all(&self.pool)
+        .await?
+        .iter()
+        .map(|row| Lang::try_from(row.lang_id as u8))
+        .collect::<Result<Vec<Lang>, Error>>()
+    }
+
+    pub async fn get_langs(&self, user_id: Uuid) -> Result<Vec<Lang>> {
+        sqlx::query!(
+            r#"SELECT lang FROM langauges AS L
+                INNER JOIN user_languages AS ul ON l.id = ul.lang_id
+                INNER JOIN users as u ON ul.user_id = u.id
+                WHERE u.id=?1"#,
+            user_id
+        )
+        .fetch_all(&self.pool)
+        .await?
+        .iter()
+        .map(|row| Lang::try_from(row.lang.as_str()))
+        .collect::<Result<Vec<Lang>, Error>>()
+    }
+
     pub async fn get_runs(&self, user_id: Uuid) -> Result<impl Iterator<Item = TypingInfo>> {
         let user_id = user_id.to_string();
         let query_rows = sqlx::query!(
             r#"
-            SELECT t.title, t.lang, r.wpm, r.errors, r.start_index, r.end_index FROM user_runs as r
+            SELECT t.title, l.lang, r.wpm, r.errors, r.start_index, r.end_index, r.topic_id, r.type_time FROM user_runs as r
             INNER JOIN topics as t ON r.topic_id = t.id
+            INNER JOIN langauges as l ON t.lang_id =l.id
             WHERE r.user_id = $1"#,
             user_id
         )
@@ -190,6 +260,10 @@ impl DB {
                 error_rate: counts as f64 / typing_length as f64,
                 lang: row.lang,
                 title: row.title,
+                end_idx: row.end_index as usize,
+                start_idx: row.start_index as usize,
+                topic_id: row.topic_id as usize,
+                type_time_s: row.type_time,
             }
         });
         Ok(query_rows)
@@ -242,8 +316,9 @@ impl DB {
     ) -> Result<impl Iterator<Item = (f32, usize, usize, String, String)>> {
         let str_id = user_id.to_string();
         Ok(sqlx::query!(
-            r#"SELECT MAX(p.final_idx) as final_idx, p.topic_id, t.lang, t.text_len, t.title
+            r#"SELECT MAX(p.final_idx) as final_idx, p.topic_id, l.lang, t.text_len, t.title
             FROM user_progress as p INNER JOIN topics as t on p.topic_id = t.id
+            INNER JOIN langauges AS l ON t.lang_id = l.id
             WHERE p.user_id = $1 GROUP BY p.topic_id;"#,
             str_id
         )
@@ -302,6 +377,31 @@ impl DB {
                 Uuid::parse_str(&row.user_id).expect("Expect database to only have valid uuid."),
             )
         }))
+    }
+    pub async fn get_topics(&self) -> Result<Vec<TopicData>> {
+        let rows = sqlx::query!(
+            r#"SELECT title, lang, topics.id FROM topics INNER JOIN langauges ON topics.lang_id = langauges.id;"#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .context("Topics query failed due to")?;
+        let mut langs: Vec<TopicData> = vec![];
+        for row in rows {
+            if langs.iter().find(|l| l.lang == row.lang).is_none() {
+                langs.push(TopicData {
+                    lang: row.lang,
+                    topics: vec![(row.id as i32, row.title)],
+                });
+            } else {
+                let topics = langs
+                    .iter_mut()
+                    .find(|l| l.lang == row.lang)
+                    .expect("We handle the case where lang exists.");
+                topics.topics.push((row.id as i32, row.title));
+            }
+        }
+
+        Ok(langs)
     }
 }
 
