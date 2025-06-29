@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT lang_id FROM user_languages WHERE user_id = ?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "lang_id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "24d4af4d5a0a85ef431ecf78472517c8a985637e0c62fdbfd1b18323cde7b506"
+}

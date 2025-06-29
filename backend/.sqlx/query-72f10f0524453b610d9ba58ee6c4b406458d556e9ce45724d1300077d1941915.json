@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO topics\n            (topic, topic_text, text_len, lang, title)\n            VALUES ($1, $2, $3, $4, $5) RETURNING id;",
+  "query": "INSERT INTO topics\n            (topic, topic_text, text_len, lang_id, title)\n            VALUES ($1, $2, $3, $4, $5) RETURNING id;",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "6125a7d272dd7a8a6777dfcf1b4e1fd5f7b41d74b7d967718debd1c016b514fa"
+  "hash": "72f10f0524453b610d9ba58ee6c4b406458d556e9ce45724d1300077d1941915"
 }

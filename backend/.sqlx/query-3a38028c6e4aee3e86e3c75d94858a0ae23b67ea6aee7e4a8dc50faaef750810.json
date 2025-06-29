@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO langauges (id, lang) VALUES ($1, $2) ON CONFLICT DO NOTHING;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "3a38028c6e4aee3e86e3c75d94858a0ae23b67ea6aee7e4a8dc50faaef750810"
+}

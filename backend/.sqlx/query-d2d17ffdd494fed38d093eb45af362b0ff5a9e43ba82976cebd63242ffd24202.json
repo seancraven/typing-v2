@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT title, lang, topics.id FROM topics INNER JOIN langauges ON topics.lang_id = langauges.id;",
+  "describe": {
+    "columns": [
+      {
+        "name": "title",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "lang",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "id",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d2d17ffdd494fed38d093eb45af362b0ff5a9e43ba82976cebd63242ffd24202"
+}

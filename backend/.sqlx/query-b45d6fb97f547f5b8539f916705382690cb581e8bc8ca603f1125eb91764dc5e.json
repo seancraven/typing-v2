@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT lang FROM langauges AS L\n                INNER JOIN user_languages AS ul ON l.id = ul.lang_id\n                INNER JOIN users as u ON ul.user_id = u.id\n                WHERE u.id=?1",
+  "describe": {
+    "columns": [
+      {
+        "name": "lang",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b45d6fb97f547f5b8539f916705382690cb581e8bc8ca603f1125eb91764dc5e"
+}
