@@ -122,10 +122,16 @@ fn get_next_chonk(
     if start_idx >= text.len() {
         return None;
     };
-    let olen = text.len();
+    let original_length = text.len();
     text.drain(..start_idx);
-    if len > olen {
-        return Some((text, start_idx, olen));
+
+    // If the text is shorter than the chunk size, just return the whole thing, from the start idx.
+    if len > original_length {
+        return Some((text, start_idx, original_length));
+    }
+    // If the drained text is shorter than the chunk size, just return the whole thing, from the start idx.
+    if text.len() < len {
+        return Some((text, start_idx, original_length));
     }
     let offset = text[len..]
         .find(['\n'])
@@ -309,5 +315,69 @@ mod tests {
         let test_text = String::from(include_str!("md_block_tests.md"));
         let lang = parse_md_lang(&test_text, 0).unwrap();
         assert_eq!(&lang, "python")
+    }
+    #[test]
+    fn test_get_next_chonk() {
+        let (text, start_idx, end_idx) =
+            get_next_chonk("hello".to_string(), 5, 0).expect("Should work");
+        assert_eq!(text, "hello");
+        assert_eq!(start_idx, 0);
+        assert_eq!(end_idx, 5);
+    }
+    #[test]
+    fn test_get_next_chonk_short() {
+        let (text, start_idx, end_idx) =
+            get_next_chonk("hello".to_string(), 2, 0).expect("Should work");
+        assert_eq!(text, "he");
+        assert_eq!(start_idx, 0);
+        assert_eq!(end_idx, 2);
+    }
+    #[test]
+    fn test_get_next_chonk_long() {
+        let (text, start_idx, end_idx) =
+            get_next_chonk("hello".to_string(), 10, 0).expect("Should work");
+        assert_eq!(text, "hello");
+        assert_eq!(start_idx, 0);
+        assert_eq!(end_idx, 5);
+    }
+    #[test]
+    fn test_get_next_chonk_none() {
+        assert!(get_next_chonk("hello".to_string(), 10, 5).is_none());
+    }
+    #[test]
+    fn test_get_next_chonk_new_line() {
+        let (text, start_idx, end_idx) =
+            get_next_chonk("hello\n".to_string(), 2, 0).expect("Should work");
+        assert_eq!(text, "hello");
+        assert_eq!(start_idx, 0);
+        assert_eq!(end_idx, 5);
+    }
+    #[test]
+    fn test_get_next_chonk_fuzz() {
+        let mut rng = rand::thread_rng();
+        for i in 0..100 {
+            // Generate a bunch of quite long random strings.
+            let mut end_bytes = vec![];
+            for _ in 0..10 {
+                let mut bytes: [u8; 1024] = [0; 1024];
+                rng.fill(&mut bytes);
+                for i in 0..rng.gen_range(0..1024) {
+                    end_bytes.push(bytes[i]);
+                }
+            }
+            let text =
+                String::from_utf8(end_bytes.into_iter().map(|c| c.min(127)).collect()).unwrap();
+            let in_text = text.clone();
+            let len = rand::thread_rng().gen_range(0..text.len());
+            let mut yielded_text = String::new();
+            let mut start_idx = 0;
+            while let Some(items) = get_next_chonk(text.clone(), len, start_idx) {
+                let text = items.0;
+                start_idx = items.2;
+                assert_eq!(text.len(), items.2 - items.1);
+                yielded_text.push_str(&text);
+            }
+            assert_eq!(yielded_text, in_text);
+        }
     }
 }
