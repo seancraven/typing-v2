@@ -1,13 +1,18 @@
-use secrecy::ExposeSecret;
+use secrecy::{ExposeSecret, SecretString};
 use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{Context, Result};
 use log::{error, info};
 use sqlx::{types::chrono::Utc, SqlitePool};
 use std::fs::File;
+use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{text::Lang, types};
+use crate::{
+    authentication::{compute_password_hash, verify_password_hash, AuthError},
+    text::Lang,
+    types,
+};
 
 // Basic DB CRUD layer, isolate SQL queries from the rest of the code.
 // Some of the response models
@@ -50,13 +55,13 @@ impl DB {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum LoginErr {
-    #[error("No user with username {0}")]
-    NoUser(String),
-    #[error("Invalid password")]
-    BadPassowrd,
-    #[error("unknown")]
-    Unknown(#[from] anyhow::Error),
+pub enum RegisterError {
+    #[error("User with name already exists.")]
+    UserEmailAlreadyExists(#[source] sqlx::Error),
+    #[error("User Email already exists.")]
+    UserNameAlreadyExists(#[source] sqlx::Error),
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
 }
 
 impl DB {
@@ -94,10 +99,11 @@ impl DB {
         Ok(())
     }
     // Users
-    pub async fn add_user(&self, user: &types::User) -> Result<uuid::Uuid> {
+    pub async fn add_user(&self, user: types::User) -> Result<uuid::Uuid, RegisterError> {
         let new_id = Uuid::new_v4();
         let new_id_str = new_id.to_string();
-        let password = user.password.expose_secret();
+        let password = compute_password_hash(user.password)?;
+        let password = password.expose_secret();
         let created_at = Utc::now();
         let id = sqlx::query_scalar!(
             r#"INSERT INTO users (id, username, user_password, email, created_at, text_length_prefernce, active)
@@ -111,35 +117,65 @@ impl DB {
 
         )
         .fetch_one(&self.pool)
-        .await
-        .map_err(|e| anyhow::anyhow!("User add query failed due to {}.", e))?;
-        assert_eq!(new_id_str, id, "New user id doesn't match.");
-        self.set_user_goal(new_id, types::UserGoal::new(95.0, 120.0, 300.0))
-            .await?;
-        let new_id_back =
-            Uuid::parse_str(&id).context("Parsing UUID string returned from DB failed:")?;
-        Ok(new_id_back)
+        .await;
+        match id {
+            Ok(id) => {
+                assert_eq!(new_id_str, id, "New user id doesn't match.");
+                self.set_user_goal(new_id, types::UserGoal::new(95.0, 120.0, 300.0))
+                    .await?;
+                let new_id_back =
+                    Uuid::parse_str(&id).context("Parsing UUID string returned from DB failed:")?;
+                Ok(new_id_back)
+            }
+            Err(e) => {
+                if e.as_database_error().map(|e| e.is_unique_violation()) == Some(true) {
+                    let message = e.to_string().to_lowercase();
+                    if message.contains("email") {
+                        return Err(RegisterError::UserEmailAlreadyExists(e));
+                    } else if message.contains("username") {
+                        return Err(RegisterError::UserNameAlreadyExists(e));
+                    };
+                    error!("Unexpected error during user registration due to {}.", e);
+                    Err(RegisterError::UnexpectedError(e.into()))
+                } else {
+                    Err(RegisterError::UnexpectedError(e.into()))
+                }
+            }
+        }
     }
     pub async fn verify_user(
         &self,
         user: types::User,
-    ) -> std::result::Result<uuid::Uuid, LoginErr> {
-        let row = sqlx::query!(
+    ) -> std::result::Result<uuid::Uuid, AuthError> {
+        // Set a dummy hash to make timing attacks impossible.
+        // Means same work is done for both success and failure.
+        let mut expected_password_hash = SecretString::from(
+            "$argon2id$v=19$m=15000,t=2,p=1$\
+            gZiV/M1gPc22ElAH/Jh1Hw$\
+            CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno"
+                .to_string(),
+        );
+        let mut user_id = Uuid::nil();
+        if let Some((id, password)) = sqlx::query!(
             r#"SELECT id, user_password FROM users WHERE username = $1"#,
             user.username
         )
         .fetch_optional(&self.pool)
         .await
-        .context("Failed query user password during verification:")?;
-        match row {
-            Some(r) => {
-                if r.user_password == user.password.expose_secret() {
-                    return Ok(Uuid::parse_str(&r.id).context("")?);
-                };
-                Err(LoginErr::BadPassowrd)
-            }
-            None => Err(LoginErr::NoUser(user.username)),
-        }
+        .context("Failed query user password during verification:")?
+        .map(|r| (r.id, r.user_password))
+        {
+            // If we find the user, we update the dummy creds.
+            user_id = Uuid::parse_str(&id).context("Invalid user id")?;
+            expected_password_hash = SecretString::from(password);
+        };
+
+        tokio::task::spawn_blocking(move || {
+            verify_password_hash(expected_password_hash, user.password)
+        })
+        .await
+        .context("Failed to spawn blocking task.")?;
+        Ok(user_id)
     }
     // Runs
     pub async fn get_runs(&self, user_id: Uuid) -> Result<impl Iterator<Item = types::TypingInfo>> {

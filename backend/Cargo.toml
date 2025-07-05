@@ -27,3 +27,4 @@ rand = "0.8.5"
 thiserror = "2.0.3"
 chrono = { version = "0.4.41", features = ["serde"] }
 secrecy = { version = "0.10.3", features = ["serde"] }
+argon2 = { version = "0.5.3", features = ["std"] }

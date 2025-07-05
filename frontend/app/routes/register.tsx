@@ -1,4 +1,10 @@
-import { ActionFunctionArgs, Form, Link, useActionData } from "react-router";
+import {
+  ActionFunctionArgs,
+  Form,
+  Link,
+  useActionData,
+  useNavigate,
+} from "react-router";
 import { User } from "~/typeApi";
 
 import { cn } from "~/lib/utils";
@@ -44,79 +50,89 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function Register() {
   const actionData = useActionData<typeof action>();
+  const navigate = useNavigate();
   return (
     <div className="mt-20">
       <section className="z-30 w-full backdrop-blur-lg backdrop-filter">
         <div className="mx-auto flex flex-col items-center justify-center px-6 py-8 md:h-full lg:py-0">
           <div className="space-y-4 p-6 sm:p-8 md:space-y-6">
-            <Form className="space-y-4 md:space-y-6" method="post">
-              <div>
-                <div className={cn("flex flex-col gap-6")}>
-                  <Card>
+            <div>
+              <div className={cn("flex flex-col gap-6")}>
+                <Card>
+                  {actionData?.success ? (
                     <CardHeader>
-                      <CardTitle className="text-2xl">Sign Up</CardTitle>
-
+                      <CardTitle className="text-2xl">Success!</CardTitle>
                       <CardDescription className="w-80">
-                        Enter your username, email and password to sign up.
+                        You have successfully registered.
                       </CardDescription>
+                      <Button onClick={() => navigate("/login")}>Login</Button>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-col gap-6">
-                        <div className="grid gap-2">
-                          <Label htmlFor="username">Username</Label>
-                          <Input
-                            id="username"
-                            type="username"
-                            name="username"
-                            placeholder="chad"
-                            required
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <div className="flex items-center">
-                            <Label htmlFor="email">Email</Label>
+                  ) : (
+                    <Form className="space-y-4 md:space-y-6" method="post">
+                      <CardHeader>
+                        <CardTitle className="text-2xl">Sign Up</CardTitle>
+                        <CardDescription className="w-80">
+                          Enter your username, email and password to sign up.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-col gap-6">
+                          <div className="grid gap-2">
+                            <Label htmlFor="username">Username</Label>
+                            <Input
+                              id="username"
+                              type="username"
+                              name="username"
+                              placeholder="chad"
+                              required
+                            />
                           </div>
-                          <Input
-                            id="email"
-                            type="email"
-                            name="email"
-                            placeholder="chad@program.com"
-                            required
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <div className="flex items-center">
-                            <Label htmlFor="password">Password</Label>
+                          <div className="grid gap-2">
+                            <div className="flex items-center">
+                              <Label htmlFor="email">Email</Label>
+                            </div>
+                            <Input
+                              id="email"
+                              type="email"
+                              name="email"
+                              placeholder="chad@program.com"
+                              required
+                            />
                           </div>
-                          <Input
-                            id="password"
-                            type="password"
-                            name="password"
-                            placeholder="password"
-                            required
-                          />
+                          <div className="grid gap-2">
+                            <div className="flex items-center">
+                              <Label htmlFor="password">Password</Label>
+                            </div>
+                            <Input
+                              id="password"
+                              type="password"
+                              name="password"
+                              placeholder="password"
+                              required
+                            />
+                          </div>
+                          <Button className="w-full">Register</Button>
                         </div>
-                        <Button className="w-full">Register</Button>
-                      </div>
-                      <div className="mt-4 text-center text-sm">
-                        Alreaady have an account?{" "}
-                        <Link
-                          to="/login"
-                          className="underline underline-offset-4"
-                        >
-                          Login
-                        </Link>
-                        <div
-                          className={`h-8 items-center justify-center pt-2 ${actionData?.success ? "text-green-500" : "text-red-500"}`}
-                        >
-                          {actionData && actionData.msg}
+                        <div className="mt-4 text-center text-sm">
+                          Alreaady have an account?{" "}
+                          <Link
+                            to="/login"
+                            className="underline underline-offset-4"
+                          >
+                            Login
+                          </Link>
+                          <div
+                            className={`h-8 items-center justify-center pt-2 ${actionData?.success ? "text-green-500" : "text-red-500"}`}
+                          >
+                            {actionData && actionData.msg}
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </CardContent>
+                    </Form>
+                  )}
+                </Card>
               </div>
-            </Form>
+            </div>
           </div>
         </div>
       </section>

@@ -1,3 +1,8 @@
+mod authentication;
+mod llm_client;
+mod store;
+mod text;
+mod types;
 use actix_web::{
     error::{ErrorInternalServerError, ErrorUnprocessableEntity},
     get,
@@ -6,20 +11,16 @@ use actix_web::{
     web::{self, Json},
     App, HttpResponse, Responder, Result,
 };
+use authentication::AuthError;
 use awc::{Client, Connector};
 use log::{error, info};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
-use store::{LoginErr, DB};
+use store::{RegisterError, DB};
 use text::{text_for_typing, text_generation};
 use uuid::Uuid;
 
 use crate::text::LANGUAGES;
-
-mod llm_client;
-mod store;
-mod text;
-mod types;
 
 #[actix_web::main]
 async fn main() {
@@ -89,12 +90,23 @@ async fn check_health(state: web::Data<DB>) -> impl Responder {
 // User management endpoints
 #[post("/register")]
 async fn register(state: web::Data<DB>, data: Json<types::User>) -> impl Responder {
-    let id = match state.add_user(&data.0).await {
+    let data = data.into_inner();
+    let username = data.username.clone();
+
+    let id = match state.add_user(data).await {
         Ok(id) => id,
-        Err(e) => {
-            error!("While regestering user {} occured {}.", data.0.username, e);
-            return HttpResponse::InternalServerError().finish();
-        }
+        Err(e) => match e {
+            RegisterError::UserEmailAlreadyExists(_) => {
+                return HttpResponse::Conflict().body("User with this email already exists.");
+            }
+            RegisterError::UserNameAlreadyExists(_) => {
+                return HttpResponse::Conflict().body("User with this name already exists.");
+            }
+            RegisterError::UnexpectedError(e) => {
+                error!("While regestering user {} occured {}.", username, e);
+                return HttpResponse::InternalServerError().body("We encountered an error.");
+            }
+        },
     };
     HttpResponse::Ok().json(json!({"id": id.to_string()}))
 }
@@ -104,11 +116,8 @@ async fn login(state: web::Data<DB>, data: Json<types::User>) -> impl Responder 
     match state.verify_user(user).await {
         Ok(id) => HttpResponse::Ok().json(json!({"id": id.to_string()})),
         Err(e) => match e {
-            LoginErr::BadPassowrd => HttpResponse::Unauthorized().finish(),
-            LoginErr::NoUser(uname) => {
-                HttpResponse::BadRequest().body(format!("User with name {} doesn't exist.", uname))
-            }
-            LoginErr::Unknown(e) => {
+            AuthError::InvalidCredentials(_) => HttpResponse::Unauthorized().finish(),
+            AuthError::UnexpectedError(e) => {
                 error!("During login falure occured {}", e);
                 HttpResponse::InternalServerError().finish()
             }

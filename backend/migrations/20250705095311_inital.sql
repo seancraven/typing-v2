@@ -1,9 +1,9 @@
 -- Add migration script here
 CREATE TABLE IF NOT EXISTS users (
     id CHAR(32) PRIMARY KEY NOT NULL,
-    email VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
     created_at TIMESTAMP NOT NULL,
-    username VARCHAR(50) NOT NULL,
+    username VARCHAR(50) NOT NULL UNIQUE,
     user_password VARCHAR(50) NOT NULL,
     active BOOLEAN NOT NULL,
     text_length_prefernce INTEGER NOT NULL
