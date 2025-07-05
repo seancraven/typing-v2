@@ -96,7 +96,7 @@ export default function Register() {
                             required
                           />
                         </div>
-                        <Button className="w-full">Login</Button>
+                        <Button className="w-full">Register</Button>
                       </div>
                       <div className="mt-4 text-center text-sm">
                         Alreaady have an account?{" "}
