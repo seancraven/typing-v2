@@ -73,7 +73,7 @@ export const columns: ColumnDef<Language>[] = [
         <img
           className="h-6"
           width="h-6"
-          src={`/${row.getValue("name").toLowerCase()}.png`}
+          src={`/${row.getValue<string>("name").toLowerCase()}.png`}
           alt={row.getValue("name")}
         />
       </div>

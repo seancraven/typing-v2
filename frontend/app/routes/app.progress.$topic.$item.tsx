@@ -1,12 +1,10 @@
 import {
   useFetcher,
   useLoaderData,
-  useParams,
   useNavigate,
   ActionFunctionArgs,
   LoaderFunctionArgs,
   redirect,
-  useRouteLoaderData,
 } from "react-router";
 import { getSession, getUserIdChecked } from "~/sessions";
 import { KeyboardEvent, useEffect, useState } from "react";
@@ -39,12 +37,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const json = await request.json();
-  const resp = await fetch(`${process.env.BE_URL}/user/data`, {
+  const json = (await request.json()) as UserData;
+  console.log("Typing results json", json);
+  const resp = await fetch(`${process.env.BE_URL}/${json.user_id}/data`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(json),
   });
+  if (!resp.ok) {
+    console.log("Failed to post data", resp);
+  }
   return null;
 }
 type UserData = {
@@ -111,18 +113,9 @@ type TypingSpanState = {
   maxViewIndex: number | undefined;
   minViewIndex: number;
 };
-export function Typing(props: {
-  text: string;
-  postDataHandler: (arg0: number, arg1: string[]) => void;
-  loggedIn: boolean;
-  nextHandler: () => void;
-}) {
-  const text = props.text;
-  const postDataHandler = props.postDataHandler;
+function newDefaultSpanState(text: string, lineWidth: number): TypingSpanState {
   const errors: string[] = new Array(text.length).fill("");
   const spanned: JSX.Element[] = new Array(text.length);
-  const [lineWidth, setLineWidth] = useState(60);
-
   let lastNl = 0;
   const newLines = [];
   for (let i = 0; i < text.length; i++) {
@@ -133,7 +126,6 @@ export function Typing(props: {
   }
   newLines.push(text.length);
   const maxViewIndex = newLines.at(VIEW_LINE_COUNT);
-
   const defaultSpanState = {
     spans: spanned,
     position: 0,
@@ -143,9 +135,23 @@ export function Typing(props: {
     minViewIndex: 0,
     maxViewIndex: maxViewIndex,
   };
+  return defaultSpanState;
+}
+export function Typing(props: {
+  text: string;
+  postDataHandler: (arg0: number, arg1: string[]) => void;
+  loggedIn: boolean;
+  nextHandler: () => void;
+}) {
+  const text = props.text;
+  const postDataHandler = props.postDataHandler;
+  // Shared state.
+  const [lineWidth, setLineWidth] = useState(60);
+  //
+  const defaultSpanState = newDefaultSpanState(text, lineWidth);
   const [typingState, setTypingState] =
     useState<TypingSpanState>(defaultSpanState);
-  // Shared state.
+  //
   const [complete, setComplete] = useState(false);
   const [enabled, setEnabled] = useState(props.loggedIn);
   const [timerState, setTimerState] = useState("00:00");
@@ -187,7 +193,7 @@ export function Typing(props: {
       postDataHandler(
         typingState.keypressHistory.at(-1)[1] -
           typingState.keypressHistory[0][1],
-        errors,
+        typingState.error,
       );
       setComplete(true);
       setEnabled(false);
@@ -317,11 +323,11 @@ function handleKeypress(
       text.slice(state.position, state.position + 4) === "    "
     ) {
       for (let i = state.position; i < state.position + 4; i++) {
-        state.error[i] = keypressCorrect(text[i], " ");
+        state.error[i] = calculateErrorCharacter(text[i], " ");
       }
       delta = 4;
     } else {
-      state.error[state.position] = keypressCorrect(
+      state.error[state.position] = calculateErrorCharacter(
         text[state.position],
         event.key,
       );
@@ -377,27 +383,20 @@ function handleKeypress(
   event.preventDefault();
 }
 
-function keypressCorrect(targetChar: string, key: string) {
-  switch (targetChar) {
-    case "\n": {
-      if (key != "Enter") {
-        return "\n";
-      }
-      break;
+function calculateErrorCharacter(targetChar: string, key: string) {
+  // Handle special characters where the keypress is incorrect
+  if (targetChar == "\n") {
+    if (key != "Enter") {
+      return "\n";
     }
-    case "\t": {
-      if (key != "Tab") {
-        return "\t";
-      }
-      break;
+  } else if (targetChar == "\t") {
+    if (key != "Tab") {
+      return "\t";
     }
-    default: {
-      if (key != targetChar) {
-        return targetChar;
-      }
-      break;
-    }
+  } else if (key != targetChar) {
+    return targetChar;
   }
+  // If the key is correct, return an empty string
   return "";
 }
 function Pause({ handleResume }: { handleResume: () => void }) {

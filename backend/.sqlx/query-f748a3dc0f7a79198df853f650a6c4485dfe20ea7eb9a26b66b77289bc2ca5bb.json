@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO user_goals (user_id, accuracy, wpm, time_spent)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (user_id) DO UPDATE SET accuracy = $2, wpm = $3, time_spent = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "f748a3dc0f7a79198df853f650a6c4485dfe20ea7eb9a26b66b77289bc2ca5bb"
+}

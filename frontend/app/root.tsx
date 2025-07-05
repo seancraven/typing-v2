@@ -5,7 +5,6 @@ import {
   Scripts,
   ScrollRestoration,
   useNavigate,
-  useParams,
   useFetcher,
   Link,
   useLocation,
@@ -13,7 +12,6 @@ import {
 import type { LinksFunction } from "react-router";
 import { ThemeToggle } from "~/components/ThemeToggle";
 import { useEffect } from "react";
-import stylesheet from "~/tailwind.css?url";
 import { loader as apiLoder } from "~/routes/api.user";
 import {
   DropdownMenu,
@@ -23,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./components/ui/dropdown-menu";
+import stylesheet from "~/tailwind.css?url";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },

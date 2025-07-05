@@ -14,8 +14,14 @@ export type TypeData = {
   start_idx: number;
   end_idx: number;
   topic_id: number;
+  time: string;
 };
 
+export type GoalData = {
+  accuracy: number;
+  wpm: number;
+  time_spent: number;
+};
 export type TopicsData = {
   lang: string;
   topics: [number, string][];

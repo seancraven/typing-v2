@@ -9,7 +9,9 @@ export function ErrorBoundary() {
       <h1 className="m-auto flex h-full items-center justify-center p-5 text-5xl text-red-800">
         Internal Error
       </h1>
-      <Link to="/">Go Home</Link>
+      <Link className="m-auto" to="/">
+        Go Home
+      </Link>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT t.title, l.lang, r.wpm, r.errors, r.start_index, r.end_index, r.topic_id, r.type_time FROM user_runs as r\n            INNER JOIN topics as t ON r.topic_id = t.id\n            INNER JOIN langauges as l ON t.lang_id =l.id\n            WHERE r.user_id = $1",
+  "query": "\n            SELECT\n                t.title,\n                l.lang,\n                r.wpm,\n                r.errors,\n                r.start_index,\n                r.end_index,\n                r.topic_id,\n                r.type_time,\n                r.created_at\n            FROM user_runs as r\n            INNER JOIN topics as t ON r.topic_id = t.id\n            INNER JOIN langauges as l ON t.lang_id =l.id\n            WHERE r.user_id = $1\n            ORDER BY r.created_at DESC",
   "describe": {
     "columns": [
       {
@@ -42,6 +42,11 @@
         "name": "type_time",
         "ordinal": 7,
         "type_info": "Float"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 8,
+        "type_info": "Datetime"
       }
     ],
     "parameters": {
@@ -55,8 +60,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "b1b38759748b3c94a7e6873f984ca522320b2e24099d1e78ad3bf0017e1523ff"
+  "hash": "07d7259995962c236063281d99255bcd2e90198b4a0977ec841b7a0aa9c64e26"
 }

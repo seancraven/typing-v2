@@ -5,7 +5,7 @@ import LineGraph from "~/components/LineGraph";
 import RecentSessions from "~/components/RecentSessions";
 import { getCookieSession, getUserIdChecked } from "~/sessions";
 import { LoaderFunctionArgs, useLoaderData } from "react-router";
-import { TypeData, TopicsData } from "~/typeApi";
+import { TypeData, TopicsData, GoalData } from "~/typeApi";
 import { LanguageTable } from "~/components/LanguageTable";
 import { useState } from "react";
 
@@ -20,23 +20,28 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const responseProm = fetch(`${process.env.BE_URL}/${userId}/stats`).then(
     handleResponse,
   ) as Promise<TypeData[]>;
-  const langsProm = fetch(`${process.env.BE_URL}/${userId}/lang`).then(
-    handleResponse,
-  ) as Promise<{ langs: string[]; user_langs: string[] }>;
   const topicProm = fetch(`${process.env.BE_URL}/topics`).then(
     handleResponse,
   ) as Promise<{ topics: TopicsData[] }>;
-  const [stats, languageData, topics] = await Promise.all([
+  const langsProm = fetch(`${process.env.BE_URL}/langs`).then(
+    handleResponse,
+  ) as Promise<{ langs: string[] }>;
+  const goalsProm = fetch(`${process.env.BE_URL}/${userId}/goals`).then(
+    handleResponse,
+  ) as Promise<GoalData>;
+  const [stats, langs, topics, goals] = await Promise.all([
     responseProm,
     langsProm,
     topicProm,
+
+    goalsProm,
   ]);
 
-  return { stats, languageData, userId, topics };
+  return { stats, userId, topics, goals, langs };
 }
 
 export default function Dashboard() {
-  const { stats, languageData, userId, topics } =
+  const { stats, userId, topics, goals, langs } =
     useLoaderData<typeof loader>();
 
   // Deduplicate topics
@@ -49,11 +54,6 @@ export default function Dashboard() {
       ([key, value]) => [value, key] as [number, string],
     );
   });
-  const languages = languageData.langs.map((lang) => ({
-    id: lang,
-    name: lang,
-    status: languageData.user_langs.includes(lang),
-  }));
   const [filterState, setFilterState] = useState<string[]>([]);
   const data = stats.filter((v) => {
     return !filterState.includes(v.lang);
@@ -79,11 +79,17 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <LineGraph data={data} />
           <LanguageTable
-            data={languages}
+            data={langs.langs.map((lang) => {
+              return {
+                id: lang,
+                name: lang,
+                status: true,
+              };
+            })}
             userId={userId}
             setFilterState={setFilterState}
           />
-          <DailyGoals data={data} />
+          <DailyGoals data={data} goals={goals} />
           <QuickStart topicsData={topics.topics} />
         </div>
         <RecentSessions data={data} />

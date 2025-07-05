@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Legend, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   ChartConfig,
@@ -19,33 +19,38 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function LineGraph({ data }: { data: TypeData[] }) {
-  const yMin = Math.min(...data.map((d) => d.wpm));
-  const yMax = Math.max(...data.map((d) => d.wpm));
+  let yMax = Math.max(...data.map((d) => d.wpm));
+  // Accuracy upper bound is 100
+  yMax = Math.max(yMax + 10, 110);
+  const dataTransformed = data.map((d) => ({
+    wpm: d.wpm,
+    accuracy: (1 - d.error_rate) * 100,
+  }));
 
   return (
     <Card className="lg:col-span-3">
       <CardHeader>
-        <CardTitle>Words per minute</CardTitle>
+        <CardTitle>Statistics</CardTitle>
         {/* <CardDescription>January - June 2024</CardDescription> */}
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-96 w-full">
           <LineChart
             accessibilityLayer
-            data={data}
+            data={dataTransformed}
             margin={{
               left: 12,
               right: 12,
             }}
           >
+            <Legend />
             <CartesianGrid vertical={false} />
             <XAxis tickLine={false} axisLine={false} tickMargin={8} />
             <YAxis
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              min={yMin}
-              max={yMax}
+              domain={[0, yMax]}
             />
             <ChartTooltip
               cursor={false}
@@ -56,6 +61,15 @@ export default function LineGraph({ data }: { data: TypeData[] }) {
               type="natural"
               strokeWidth={2}
               stroke="hsl(var(--primary))"
+              activeDot={{
+                r: 6,
+              }}
+            />
+            <Line
+              dataKey="accuracy"
+              type="natural"
+              strokeWidth={2}
+              stroke="hsl(var(--chart-2))"
               activeDot={{
                 r: 6,
               }}

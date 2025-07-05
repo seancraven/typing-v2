@@ -91,8 +91,8 @@ pub async fn text_for_typing(
     topic_id: i32,
     start_index: usize,
 ) -> Result<TypingState> {
-    let text_fut = db.text(topic_id);
-    let len_fut = db.user_length_pref(user_id);
+    let text_fut = db.get_topic_text(topic_id);
+    let len_fut = db.user_length_preference(user_id);
     let (text, len) = join!(text_fut, len_fut);
     let len = len.unwrap_or_else(|e| {
         error!("Failed to get user length preference due to {}.", e);

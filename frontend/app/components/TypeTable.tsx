@@ -1,10 +1,5 @@
 import * as React from "react";
-import {
-  Link,
-  LoaderFunctionArgs,
-  useLoaderData,
-  useNavigate,
-} from "react-router";
+import { useNavigate } from "react-router";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -17,7 +12,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { getSession, getUserIdChecked } from "~/sessions";
 import {
   TableBody,
   Table,
@@ -124,9 +118,9 @@ export const columns: ColumnDef<TypeData>[] = [
       );
     },
     cell: ({ row }) => {
-      const wpm = parseFloat(row.getValue("error_rate"));
-      const formatted = wpm.toPrecision(2);
-      return <div className="text-center font-medium">{formatted}</div>;
+      const error_rate = parseFloat(row.getValue("error_rate"));
+      const formatted = (error_rate * 100).toPrecision(2);
+      return <div className="text-center font-medium">{formatted}%</div>;
     },
   },
   {
@@ -134,6 +128,7 @@ export const columns: ColumnDef<TypeData>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const type = row.original;
+      const navigate = useNavigate();
 
       return (
         <DropdownMenu>
@@ -145,15 +140,21 @@ export const columns: ColumnDef<TypeData>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>
-              <Link
-                to={`/app/progress/${type.topic_id}/${type.start_idx}`}
-                className="text-foreground"
-              >
-                Redo
-              </Link>
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() =>
+                navigate(`/app/progress/${type.topic_id}/${type.start_idx}`)
+              }
+            >
+              Redo
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                navigate(`/app/progress/${type.topic_id}/${type.end_idx}`)
+              }
+            >
+              Next
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

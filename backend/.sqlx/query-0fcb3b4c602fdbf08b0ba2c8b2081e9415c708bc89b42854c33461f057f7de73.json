@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT lang_id FROM user_languages WHERE user_id = ?1",
+  "query": "SELECT text_length_prefernce FROM users WHERE id = $1 LIMIT 1;",
   "describe": {
     "columns": [
       {
-        "name": "lang_id",
+        "name": "text_length_prefernce",
         "ordinal": 0,
         "type_info": "Integer"
       }
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "24d4af4d5a0a85ef431ecf78472517c8a985637e0c62fdbfd1b18323cde7b506"
+  "hash": "0fcb3b4c602fdbf08b0ba2c8b2081e9415c708bc89b42854c33461f057f7de73"
 }

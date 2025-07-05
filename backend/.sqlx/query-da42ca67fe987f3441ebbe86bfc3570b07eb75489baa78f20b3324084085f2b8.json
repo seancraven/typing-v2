@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT accuracy, wpm, time_spent FROM user_goals WHERE user_id = $1 LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "accuracy",
+        "ordinal": 0,
+        "type_info": "Float"
+      },
+      {
+        "name": "wpm",
+        "ordinal": 1,
+        "type_info": "Float"
+      },
+      {
+        "name": "time_spent",
+        "ordinal": 2,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "da42ca67fe987f3441ebbe86bfc3570b07eb75489baa78f20b3324084085f2b8"
+}
