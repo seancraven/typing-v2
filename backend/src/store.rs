@@ -174,7 +174,7 @@ impl DB {
             verify_password_hash(expected_password_hash, user.password)
         })
         .await
-        .context("Failed to spawn blocking task.")?;
+        .context("Failed to spawn blocking task.")??;
         Ok(user_id)
     }
     // Runs

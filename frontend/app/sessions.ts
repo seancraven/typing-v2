@@ -1,9 +1,4 @@
-import {
-  createCookieSessionStorage,
-  redirect,
-  Session,
-  SessionStorage,
-} from "react-router"; // or cloudflare/deno
+import { createCookieSessionStorage, redirect, Session } from "react-router"; // or cloudflare/deno
 
 export type SessionData = {
   userId: string;
