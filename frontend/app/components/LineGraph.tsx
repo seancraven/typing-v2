@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { CartesianGrid, Legend, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
@@ -22,10 +21,12 @@ export default function LineGraph({ data }: { data: TypeData[] }) {
   let yMax = Math.max(...data.map((d) => d.wpm));
   // Accuracy upper bound is 100
   yMax = Math.max(yMax + 10, 110);
-  const dataTransformed = data.map((d) => ({
-    wpm: d.wpm,
-    accuracy: (1 - d.error_rate) * 100,
-  }));
+  const dataTransformed = data
+    .map((d) => ({
+      wpm: d.wpm,
+      accuracy: (1 - d.error_rate) * 100,
+    }))
+    .reverse();
 
   return (
     <Card className="lg:col-span-3">
