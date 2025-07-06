@@ -403,8 +403,8 @@ function Pause({ handleResume }: { handleResume: () => void }) {
   useEffect(() => {
     const el = (e: KeyboardEvent) => {
       if (e.key == "Enter" || e.key == " ") {
-        handleResume();
         e.preventDefault();
+        handleResume();
       }
     };
     window.addEventListener("keydown", el);
@@ -444,12 +444,12 @@ function Restart({
 }) {
   useEffect(() => {
     const el = (e: KeyboardEvent) => {
+      e.preventDefault();
       if (e.key == "Escape") {
         handleRestart();
       }
       if (e.key == "Enter") {
         handleNext();
-        e.preventDefault();
       }
     };
     window.addEventListener("keydown", el);
@@ -461,7 +461,6 @@ function Restart({
         <button
           className="container flex items-center rounded-xl fill-primary stroke-primary font-bold hover:bg-primary hover:fill-black hover:stroke-black"
           onClick={handleRestart}
-          onKeyDown={(e) => {}}
         >
           <div>
             <svg
@@ -481,11 +480,6 @@ function Restart({
         <button
           className="flex items-center rounded-xl fill-transparent stroke-primary font-bold hover:bg-primary hover:fill-primary hover:stroke-black"
           onClick={handleNext}
-          onKeyDown={(e) => {
-            if (e.key == "Enter") {
-              handleNext();
-            }
-          }}
         >
           <div>
             <svg
