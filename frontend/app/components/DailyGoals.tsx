@@ -18,7 +18,9 @@ export default function DailyGoals({
   data: TypeData[];
   goals: GoalData;
 }) {
-  const totalTimeS = data.reduce((acc, cur) => acc + cur.type_time_s, 0);
+  console.debug(data);
+  const totalTimemS = data.reduce((acc, cur) => acc + cur.type_time_s, 0);
+  const totalTimeS = totalTimemS / 1000;
   const totalWpm =
     data.reduce((acc, cur) => acc + cur.wpm, 0) / Math.max(data.length, 1);
   const totalTimeMinutes = (totalTimeS / 60).toFixed(0);
