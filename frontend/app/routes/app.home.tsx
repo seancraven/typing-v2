@@ -56,7 +56,7 @@ export default function Dashboard() {
   });
   const [filterState, setFilterState] = useState<string[]>([]);
   const data = stats.filter((v) => {
-    return !filterState.includes(v.lang);
+    return filterState.includes(v.lang);
   });
 
   return (

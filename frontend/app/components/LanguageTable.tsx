@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React from "react";
 import { useFetcher } from "react-router";
 import {
   ColumnDef,
@@ -8,9 +8,11 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  OnChangeFn,
   SortingState,
   useReactTable,
   VisibilityState,
+  RowSelectionState,
 } from "@tanstack/react-table";
 
 import { Button } from "~/components/ui/button";
@@ -30,7 +32,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Card } from "./ui/card";
-import { action } from "~/routes/api.$userId.set_lang";
+import { action } from "~/routes/api.goals";
 export type Language = {
   status: boolean;
   id: string;
@@ -102,10 +104,8 @@ export function LanguageTable({
     rowSelectionInit[i] = true;
   });
   const [rowSelection, setRowSelection] = React.useState(rowSelectionInit);
-  const setRowHook = (v: Record<string, boolean>) => {
+  const setRowHook: OnChangeFn<RowSelectionState> = (v) => {
     setRowSelection(v);
-    const rows = table.getSelectedRowModel().rows.map((v) => v.original.name);
-    setFilterState(rows);
   };
 
   const table = useReactTable({
@@ -129,7 +129,10 @@ export function LanguageTable({
       pagination: { pageIndex: 0, pageSize: 4 },
     },
   });
-
+  React.useEffect(() => {
+    const rows = table.getSelectedRowModel().rows.map((v) => v.original.name);
+    setFilterState(rows);
+  }, [rowSelection]);
   return (
     <Card className="min-h-80 w-full">
       <div className="w-full px-6">
