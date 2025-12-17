@@ -97,7 +97,7 @@ export default function TypingTest() {
           nav(`/app/progress/random`);
         }
         nav(`/app/progress/${typingTest.topic_id}/${typingTest.end_index}`, {
-          replace: true,
+          flushSync: true,
         });
       }}
     />
@@ -435,6 +435,7 @@ function Pause({ handleResume }: { handleResume: () => void }) {
     </div>
   );
 }
+
 function Restart({
   handleNext,
   handleRestart,
